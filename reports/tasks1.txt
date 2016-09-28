@@ -1,0 +1,9 @@
+ 1. Create new repository on GitLab and give us the access as before. From now on, you should all use only that single repository.
+
+ 2. Including tasks1.txt in the repository (in reports directory), which includes this content.
+
+ 3. Including tasks2.txt, tasks3.txt, tasks4.txt, and tasks5.txt which lists the planned tasks for each phase of the project.  (All files should be in the same directory.) You will have some flexibility to update the tasks as the time goes, but you should have planned tasks during the first two weeks.
+
+ 4. Develop five simple applications (or take them from GitHub) and enable communication between phones in these applications.  At the moment, all applications should be installed on all devices.  One application would only send arguments and method name; another phone will execute code and send the result back.
+
+ 5. Measure time to communicate among phones and automate execution.
