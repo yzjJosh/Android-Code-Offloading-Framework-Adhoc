@@ -2,6 +2,8 @@ package mobilecloud.test.invocation;
 
 import static org.junit.Assert.*;
 
+import java.io.Serializable;
+
 import org.junit.Before;
 import org.junit.Test;
 
@@ -15,19 +17,26 @@ import mobilecloud.utils.Response;
 public class RemoteInvocationHandlerTest {
     
     private RemoteInvocationRequest req;
+    private Foo f;
     
     
-    public int sum(String a, int b) {
-        return Integer.parseInt(a) + b;
+    public static class Foo implements Serializable {
+        
+        private static final long serialVersionUID = 1L;
+
+        public int sum(String a, int b) {
+            return Integer.parseInt(a) + b;
+        }
+        
     }
     
     @Before
     public void setUp() {
         Server.getInstance().registerClassLoader(0, ClassLoader.getSystemClassLoader());
-        req = new RemoteInvocationRequest().setApplicationId(0).setInvoker(this)
-                .setClazzName(RemoteInvocationHandlerTest.class.getName()).setMethodName("sum")
+        req = new RemoteInvocationRequest().setApplicationId(0).setInvoker(f = new Foo())
+                .setClazzName(Foo.class.getName()).setMethodName("sum")
                 .setArgTypesName(new String[] { String.class.getName(), int.class.getName() })
-                .setArgs(new Object[] { "1", 5 });
+                .setArgs(new Serializable[] { "1", 5 });
     }
     
     @Test
@@ -52,7 +61,7 @@ public class RemoteInvocationHandlerTest {
     
     @Test
     public void testHandleWithInvokeTargetException() throws Exception {
-        req.setArgs(new Object[]{"a", 1});
+        req.setArgs(new Serializable[]{"a", 1});
         RemoteInvocationHandler handler = new RemoteInvocationHandler();
         Response resp = handler.handle(req);
         assertTrue(resp instanceof RemoteInvocationResponse);
@@ -62,7 +71,7 @@ public class RemoteInvocationHandlerTest {
     
     @Test
     public void testHandleWithWrongArgumentType() throws Exception {
-        req.setArgs(new Object[]{1, 2});
+        req.setArgs(new Serializable[]{1, 2});
         RemoteInvocationHandler handler = new RemoteInvocationHandler();
         Response resp = handler.handle(req);
         assertTrue(resp instanceof RemoteInvocationResponse);
@@ -79,7 +88,7 @@ public class RemoteInvocationHandlerTest {
         RemoteInvocationResponse res = (RemoteInvocationResponse) resp;
         assertEquals(res.getArgs()[0], "1");
         assertEquals(res.getArgs()[1], 5);
-        assertEquals(res.getInvoker(), this);
+        assertEquals(res.getInvoker(), f);
         assertEquals(res.getReturnValue(), 6);
     }
     

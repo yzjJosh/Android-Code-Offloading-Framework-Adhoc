@@ -50,5 +50,14 @@ public class ClassUtils {
             return loadClass(name);
         }
     }
+    
+    /**
+     * Check if a string represents a primitive type
+     * @param type the name of the type
+     * @return true if it is primitive type
+     */
+    public static boolean isPrimitive (String type) {
+        return primitiveTypeClasses.containsKey(type);
+    }
 
 }

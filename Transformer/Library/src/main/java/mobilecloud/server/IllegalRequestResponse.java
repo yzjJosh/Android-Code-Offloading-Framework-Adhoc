@@ -8,7 +8,9 @@ import mobilecloud.utils.Response;
  *
  */
 public class IllegalRequestResponse extends Response{
-    
+
+    private static final long serialVersionUID = 1L;
+
     public IllegalRequestResponse(@NonNull IllegalRequestException e) {
         this.setSuccess(false);
         this.setThrowable(e);

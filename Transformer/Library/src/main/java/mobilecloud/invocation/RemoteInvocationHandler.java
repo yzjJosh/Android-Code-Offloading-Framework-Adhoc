@@ -1,5 +1,6 @@
 package mobilecloud.invocation;
 
+import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
@@ -37,7 +38,7 @@ public class RemoteInvocationHandler implements Handler {
             }
             Method method = clazz.getMethod(invocReq.getMethodName(), argTypes);
             resp.setInvoker(invocReq.getInvoker()).setArgs(invocReq.getArgs());
-            Object ret = method.invoke(invocReq.getInvoker(), invocReq.getArgs());
+            Serializable ret = (Serializable) method.invoke(invocReq.getInvoker(), (Object[])invocReq.getArgs());
             return resp.setReturnValue(ret).setSuccess(true);
         } catch (InvocationTargetException e) {
             return resp.setSuccess(false).setThrowable(e.getTargetException());

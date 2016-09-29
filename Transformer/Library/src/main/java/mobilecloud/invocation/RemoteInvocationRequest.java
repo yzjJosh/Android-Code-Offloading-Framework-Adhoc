@@ -1,5 +1,7 @@
 package mobilecloud.invocation;
 
+import java.io.Serializable;
+
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -9,10 +11,14 @@ import mobilecloud.utils.Request;
 @Setter
 @Accessors(chain = true)
 public class RemoteInvocationRequest extends Request {
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 1L;
     private long applicationId;
     private String clazzName;
     private String methodName;
     private String[] argTypesName;
-    private Object invoker;
-    private Object[] args;
+    private Serializable invoker;
+    private Serializable[] args;
 }
