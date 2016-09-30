@@ -37,8 +37,8 @@ public class ServerTest {
     
     @Before
     public void setUp() {
-        Server.getInstance().registerClassLoader(0, ClassLoader.getSystemClassLoader());
-        req = new RemoteInvocationRequest().setApplicationId(0).setInvoker(f = new Foo())
+        Server.getInstance().registerClassLoader("0", ClassLoader.getSystemClassLoader());
+        req = new RemoteInvocationRequest().setApplicationId("0").setInvoker(f = new Foo())
                 .setClazzName(Foo.class.getName()).setMethodName("sum")
                 .setArgTypesName(new String[] { String.class.getName(), int.class.getName() })
                 .setArgs(new Serializable[] { "1", 5 });

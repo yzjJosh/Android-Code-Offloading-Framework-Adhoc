@@ -16,8 +16,6 @@ public class Client {
     
     private static Client instance;
     
-    private Client() {}
-    
     /**
      * Send a request to the server and waits for response
      * @param request the request

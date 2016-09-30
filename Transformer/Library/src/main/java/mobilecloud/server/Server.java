@@ -6,6 +6,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import lombok.NonNull;
 import mobilecloud.invocation.RemoteInvocationHandler;
 import mobilecloud.invocation.RemoteInvocationRequest;
+import mobilecloud.upload.UploadApplicationExecutableHandler;
+import mobilecloud.upload.UploadApplicationExecutableRequest;
 import mobilecloud.utils.Request;
 import mobilecloud.utils.Response;
 
@@ -14,12 +16,13 @@ public class Server {
     private static Server instance;
     
     private Map<String, Handler> handlers;
-    private Map<Long, ClassLoader> classLoaders;
+    private Map<String, ClassLoader> classLoaders;
     
     private Server() {
         this.handlers = new ConcurrentHashMap<>();
         this.classLoaders = new ConcurrentHashMap<>();
-        this.handlers.put(RemoteInvocationRequest.class.getName(), new RemoteInvocationHandler());
+        this.registerHandler(RemoteInvocationRequest.class.getName(), new RemoteInvocationHandler());
+        this.registerHandler(UploadApplicationExecutableRequest.class.getName(), new UploadApplicationExecutableHandler());
     }
     
     /**
@@ -39,7 +42,7 @@ public class Server {
      * @param cl the class loader for that application
      * @return this server
      */
-    public Server registerClassLoader(long applicationId, @NonNull ClassLoader cl) {
+    public Server registerClassLoader(String applicationId, @NonNull ClassLoader cl) {
         this.classLoaders.put(applicationId, cl);
         return this;
     }
@@ -49,7 +52,7 @@ public class Server {
      * @param applicationId the application id to retrieve
      * @return the class loader
      */
-    public ClassLoader getClassLoader(long applicationId) {
+    public ClassLoader getClassLoader(String applicationId) {
         return this.classLoaders.get(applicationId);
     }
     

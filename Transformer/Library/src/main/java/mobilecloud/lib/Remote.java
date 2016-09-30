@@ -1,4 +1,4 @@
-package mobilecloud.annotation;
+package mobilecloud.lib;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;

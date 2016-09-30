@@ -32,8 +32,8 @@ public class RemoteInvocationHandlerTest {
     
     @Before
     public void setUp() {
-        Server.getInstance().registerClassLoader(0, ClassLoader.getSystemClassLoader());
-        req = new RemoteInvocationRequest().setApplicationId(0).setInvoker(f = new Foo())
+        Server.getInstance().registerClassLoader("0", ClassLoader.getSystemClassLoader());
+        req = new RemoteInvocationRequest().setApplicationId("0").setInvoker(f = new Foo())
                 .setClazzName(Foo.class.getName()).setMethodName("sum")
                 .setArgTypesName(new String[] { String.class.getName(), int.class.getName() })
                 .setArgs(new Serializable[] { "1", 5 });
@@ -41,7 +41,7 @@ public class RemoteInvocationHandlerTest {
     
     @Test
     public void testHandleWithoutExecutable() throws Exception {
-        req.setApplicationId(Long.MAX_VALUE);
+        req.setApplicationId("");
         RemoteInvocationHandler handler = new RemoteInvocationHandler();
         Response resp = handler.handle(req);
         assertTrue(resp instanceof RemoteInvocationResponse);

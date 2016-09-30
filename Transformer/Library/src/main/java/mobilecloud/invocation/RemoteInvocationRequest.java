@@ -11,11 +11,8 @@ import mobilecloud.utils.Request;
 @Setter
 @Accessors(chain = true)
 public class RemoteInvocationRequest extends Request {
-    /**
-     * 
-     */
     private static final long serialVersionUID = 1L;
-    private long applicationId;
+    private String applicationId;
     private String clazzName;
     private String methodName;
     private String[] argTypesName;

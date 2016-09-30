@@ -4,7 +4,7 @@ import javassist.CtClass;
 import javassist.CtMethod;
 import javassist.build.IClassTransformer;
 import javassist.build.JavassistBuildException;
-import mobilecloud.annotation.Remote;
+import mobilecloud.lib.Remote;
 
 public class ClassTransformer implements IClassTransformer {
 
