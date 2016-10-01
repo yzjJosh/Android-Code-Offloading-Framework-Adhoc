@@ -16,6 +16,8 @@ public class Client {
     
     private static Client instance;
     
+    private SocketBuilder builder = new DefaultSocketBuilder();
+    
     /**
      * Send a request to the server and waits for response
      * @param request the request
@@ -23,16 +25,24 @@ public class Client {
      * @throws Exception if any problem occurs during the request
      */
     public Response request(@NonNull Request request) throws Exception {
-        Socket socket = new Socket(request.getIp(), request.getPort());
+        Socket socket = builder.build(request.getIp(), request.getPort());
         try {
             ObjectOutputStream os = new ObjectOutputStream(socket.getOutputStream());
-            ObjectInputStream is = new ObjectInputStream(socket.getInputStream());
             os.writeObject(request);
             os.flush();
+            ObjectInputStream is = new ObjectInputStream(socket.getInputStream());
             return (Response) is.readObject();
         } finally {
             socket.close();
         }
+    }
+    
+    /**
+     * Set the socket builder of this client. This method is for testing purpose.
+     * @param builder the builder to set
+     */
+    public void setSocketBuilder(SocketBuilder builder) {
+        this.builder = builder;
     }
     
     /**

@@ -58,29 +58,29 @@ public class Engine {
      * @return the result of this execution
      * @throws Exception if execution fails
      */
-    public Object invokeRemotely(Method method, Object invoker, Object... args) throws Throwable {
-        if(this.getAppName() == null) {
+    public Object invokeRemotely(Method method, Object invoker, Object... args) {
+        if (this.getAppName() == null) {
             throw new IllegalStateException("No app name found!");
         }
-        
-        //Check available hosts
+
+        // Check available hosts
         Host host = Schedular.getInstance().schedule();
-        if(host == null) {
+        if (host == null) {
             throw new IllegalStateException("No host available!");
         }
-        
-        //Build a request
-        RemoteInvocationRequest request = buildInvocationRequest(host.ip, host.port, method, (Serializable)invoker, args);
-        
-        //Record object meta data
+
+        // Build a request
+        RemoteInvocationRequest request = buildInvocationRequest(host.ip, host.port, method, invoker, args);
+
+        // Record object meta data
         ObjectMigrator migrator = new ObjectMigrator();
         migrator.moveOut(invoker);
-        for(Object arg: args) {
+        for (Object arg : args) {
             migrator.moveOut(arg);
         }
-        
+
         try {
-            //Send the request
+            // Send the request
             Response resp = Client.getInstance().request(request);
 
             // Synchronize objects firstly
@@ -104,6 +104,8 @@ public class Engine {
             // Sync return value and return it
             RemoteInvocationResponse invocResp = (RemoteInvocationResponse) resp;
             return migrator.sync(invocResp.getReturnValue());
+        } catch (Throwable t) {
+            throw new RemoteExecutionFailedException("Caused by: " + t).withReaseon(t);
         } finally {
             // In case of exception, put back objects
             migrator.joinObjects();
@@ -111,17 +113,19 @@ public class Engine {
     }
     
     // Construct a remote invocation request
-    private RemoteInvocationRequest buildInvocationRequest(String ip, int port, Method method, Serializable invoker,
-            Serializable... args) {
+    private RemoteInvocationRequest buildInvocationRequest(String ip, int port, Method method, Object invoker,
+            Object[] args) {
         RemoteInvocationRequest request = new RemoteInvocationRequest();
         request.setApplicationId(getAppName()).setClazzName(method.getDeclaringClass().getName())
-                .setMethodName(method.getName()).setInvoker(invoker).setArgs(args).setIp(ip).setPort(port);
+                .setMethodName(method.getName()).setInvoker((Serializable)invoker).setIp(ip).setPort(port);
         Class<?>[] params = method.getParameterTypes();
         String[] argTypes = new String[params.length];
+        Serializable[] arguments = new Serializable[params.length];
         for (int i = 0; i < params.length; i++) {
             argTypes[i] = params[i].getName();
+            arguments[i] = (Serializable) args[i];
         }
-        request.setArgTypesName(argTypes);
+        request.setArgTypesName(argTypes).setArgs(arguments);
         return request;
     }
     

@@ -28,6 +28,11 @@ public class RemoteInvocationHandlerTest {
             return Integer.parseInt(a) + b;
         }
         
+        @SuppressWarnings("unused")
+        private int sum(int a, int b) {
+            return a + b;
+        }
+        
     }
     
     @Before
@@ -90,6 +95,20 @@ public class RemoteInvocationHandlerTest {
         assertEquals(res.getArgs()[1], 5);
         assertEquals(res.getInvoker(), f);
         assertEquals(res.getReturnValue(), 6);
+    }
+    
+    @Test
+    public void testHandlePrivateMethod() throws Exception {
+        req.setArgTypesName(new String[]{int.class.getName(), int.class.getName()}).setArgs(new Serializable[]{1,2});
+        RemoteInvocationHandler handler = new RemoteInvocationHandler();
+        Response resp = handler.handle(req);
+        assertTrue(resp instanceof RemoteInvocationResponse);
+        assertTrue(resp.isSuccess());
+        RemoteInvocationResponse res = (RemoteInvocationResponse) resp;
+        assertEquals(res.getArgs()[0], 1);
+        assertEquals(res.getArgs()[1], 2);
+        assertEquals(res.getInvoker(), f);
+        assertEquals(res.getReturnValue(), 3);
     }
     
 }

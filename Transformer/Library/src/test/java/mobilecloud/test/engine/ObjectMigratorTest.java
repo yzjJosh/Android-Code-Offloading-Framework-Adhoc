@@ -2,11 +2,8 @@ package mobilecloud.test.engine;
 
 import static org.junit.Assert.*;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 
 import org.junit.After;
 import org.junit.Before;
@@ -14,15 +11,16 @@ import org.junit.Test;
 
 import mobilecloud.engine.ObjectMigrator;
 import mobilecloud.lib.Remotable;
+import mobilecloud.test.Utils;
 
 public class ObjectMigratorTest {
     
     private static class ListNode implements Remotable {
         
         private static final long serialVersionUID = 1L;
-        private boolean isOnServer;
-        private int id;
-        private boolean isNew;
+        private boolean isOnServer = false;
+        private int id = System.identityHashCode(this);
+        private boolean isNew = false;
         public int val;
         public ListNode next;
         
@@ -66,11 +64,11 @@ public class ObjectMigratorTest {
         private static final long serialVersionUID = 1L;
         public ListNode head;
         public int size;
-        private boolean isOnServer;
-        private int id;
-        private boolean isNew;
+        private boolean isOnServer = false;
+        private int id = System.identityHashCode(this);
+        private boolean isNew = false;
         
-        private void add(int val) {
+        public void add(int val) {
             ListNode temp = new ListNode(0);
             temp.next = head;
             ListNode prev = temp;
@@ -82,7 +80,7 @@ public class ObjectMigratorTest {
             size ++;
         }
         
-        private void remove(int val) {
+        public void remove(int val) {
             ListNode temp = new ListNode(0);
             temp.next = head;
             ListNode prev = temp;
@@ -161,11 +159,7 @@ public class ObjectMigratorTest {
     }
     
     private Object sendViaNetWork(Object origin) throws IOException, ClassNotFoundException {
-        ByteArrayOutputStream bytesOs = new ByteArrayOutputStream();
-        ObjectOutputStream os = new ObjectOutputStream(bytesOs);
-        os.writeObject(origin);
-        byte[] bytes = bytesOs.toByteArray();
-        ObjectInputStream is = new ObjectInputStream(new ByteArrayInputStream(bytes));
+        ObjectInputStream is = new ObjectInputStream(Utils.toInputStream(origin));
         return is.readObject();
     }
     
@@ -194,7 +188,6 @@ public class ObjectMigratorTest {
         assertEquals(5, cloud.size);
         cloud.head.next.next.next.next.setIsNew(true);
         cloud.head.next.next.next.next.setIsOnServer(true);
-        cloud.head.next.next.next.next.setId(System.identityHashCode(cloud.head.next.next.next.next));
         assertNull(l3.next);
         List cloudBack = (List)sendViaNetWork(cloud);
         List prevL = l;
@@ -282,7 +275,6 @@ public class ObjectMigratorTest {
         ListNode cloudL4 = new ListNode(100);
         cloudL4.setIsNew(true);
         cloudL4.setIsOnServer(true);
-        cloudL4.setId(System.identityHashCode(cloudL4));
         cloud.next.next.next.next = cloud;
         cloudL4.next = cloud;
         assertNull(l3.next);
@@ -326,19 +318,14 @@ public class ObjectMigratorTest {
     public void testSync4 () throws ClassNotFoundException, IOException {
         l.setIsNew(true);
         l.setIsOnServer(true);
-        l.setId(System.identityHashCode(l));
         l0.setIsNew(true);
         l0.setIsOnServer(true);
-        l0.setId(System.identityHashCode(l0));
         l1.setIsNew(true);
         l1.setIsOnServer(true);
-        l1.setId(System.identityHashCode(l1));
         l2.setIsNew(true);
         l2.setIsOnServer(true);
-        l2.setId(System.identityHashCode(l2));
         l3.setIsNew(true);
         l3.setIsOnServer(true);
-        l3.setId(System.identityHashCode(l3));
         l3.next = l0;
         List cloudBack = (List) sendViaNetWork(l);
         migrator.sync(cloudBack);
@@ -393,7 +380,6 @@ public class ObjectMigratorTest {
         assertEquals(5, cloud.size);
         cloud.head.next.next.next.next.setIsNew(true);
         cloud.head.next.next.next.next.setIsOnServer(true);
-        cloud.head.next.next.next.next.setId(System.identityHashCode(cloud.head.next.next.next.next));
         assertNull(l3.next);
         List cloudBack = (List)sendViaNetWork(cloud);
         List prevL = l;
@@ -483,7 +469,6 @@ public class ObjectMigratorTest {
         ListNode cloudL4 = new ListNode(100);
         cloudL4.setIsNew(true);
         cloudL4.setIsOnServer(true);
-        cloudL4.setId(System.identityHashCode(cloudL4));
         cloud.next.next.next.next = cloud;
         cloudL4.next = cloud;
         assertNull(l3.next);
@@ -528,19 +513,14 @@ public class ObjectMigratorTest {
     public void testJoinObjects6 () throws ClassNotFoundException, IOException {
         l.setIsNew(true);
         l.setIsOnServer(true);
-        l.setId(System.identityHashCode(l));
         l0.setIsNew(true);
         l0.setIsOnServer(true);
-        l0.setId(System.identityHashCode(l0));
         l1.setIsNew(true);
         l1.setIsOnServer(true);
-        l1.setId(System.identityHashCode(l1));
         l2.setIsNew(true);
         l2.setIsOnServer(true);
-        l2.setId(System.identityHashCode(l2));
         l3.setIsNew(true);
         l3.setIsOnServer(true);
-        l3.setId(System.identityHashCode(l3));
         l3.next = l0;
         List cloudBack = (List) sendViaNetWork(l);
         migrator.sync(cloudBack);

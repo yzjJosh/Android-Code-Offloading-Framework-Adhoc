@@ -36,7 +36,8 @@ public class RemoteInvocationHandler implements Handler {
             for (int i = 0; i < argTypesName.length; i++) {
                 argTypes[i] = ClassUtils.loadClass(loader, argTypesName[i]);
             }
-            Method method = clazz.getMethod(invocReq.getMethodName(), argTypes);
+            Method method = clazz.getDeclaredMethod(invocReq.getMethodName(), argTypes);
+            method.setAccessible(true);
             resp.setInvoker(invocReq.getInvoker()).setArgs(invocReq.getArgs());
             Serializable ret = (Serializable) method.invoke(invocReq.getInvoker(), (Object[])invocReq.getArgs());
             return resp.setReturnValue(ret).setSuccess(true);
