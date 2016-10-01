@@ -1,13 +1,21 @@
 package mobilecloud.utils;
 
+import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.net.Inet4Address;
+import java.net.Inet6Address;
+import java.net.InetSocketAddress;
+import java.net.URI;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import lombok.NonNull;
 
@@ -42,6 +50,15 @@ public class ClassUtils {
         knownImmutableClasses.add(BigDecimal.class);
         knownImmutableClasses.add(String.class);
         knownImmutableClasses.add(Object.class);
+        knownImmutableClasses.add(StackTraceElement.class);
+        knownImmutableClasses.add(File.class);
+        knownImmutableClasses.add(Locale.class);
+        knownImmutableClasses.add(UUID.class);
+        knownImmutableClasses.add(URL.class);
+        knownImmutableClasses.add(URI.class);
+        knownImmutableClasses.add(Inet4Address.class);
+        knownImmutableClasses.add(Inet6Address.class);
+        knownImmutableClasses.add(InetSocketAddress.class);
     }
     
     /**
@@ -84,24 +101,31 @@ public class ClassUtils {
     }
     
     /**
-     * Check if a class is immutable for the best practice. This method may have false negatives
+     * Check if a class is immutable for the best practice. This method is conservative and may have false negatives
      * @param clazz the class to check
      * @return if it is immutable or not
      */
     public static boolean isImmutable(@NonNull Class<?> clazz) {
-        if(clazz.isPrimitive() || clazz.isEnum()) {
+        if(mustBeImmutable(clazz)) {
             return true;
         } else {
             for(Field f: clazz.getDeclaredFields()) {
-                if(Modifier.isStatic(f.getModifiers()) || f.isSynthetic()) {
+                if(Modifier.isStatic(f.getModifiers())) {
                     continue;
-                }
-                if(!Modifier.isFinal(f.getModifiers()) || !knownImmutableClasses.contains(f.getType())) {
+                } else if(f.isSynthetic()){
+                    if(!isImmutable(f.getType())) {
+                        return false;
+                    }
+                } else if(!Modifier.isFinal(f.getModifiers()) || !mustBeImmutable(f.getType())) {
                     return false;
                 }
             }
             return true;
         }
+    }
+    
+    private static boolean mustBeImmutable(Class<?> clazz) {
+        return clazz.isPrimitive() || clazz.isEnum() || knownImmutableClasses.contains(clazz);
     }
 
 }

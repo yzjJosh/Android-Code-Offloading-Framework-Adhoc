@@ -185,7 +185,8 @@ public class ObjectMigrator {
     }
     
     /**
-     * Clear global meta data, used for testing purpose. Caution: may cause crashing!
+     * Clear global meta data, used for testing purpose. Caution: Application
+     * should never call this method. It may cause crashing!
      */
     public static void purgeGlobalMetaData() {
         remoteObjs.clear();

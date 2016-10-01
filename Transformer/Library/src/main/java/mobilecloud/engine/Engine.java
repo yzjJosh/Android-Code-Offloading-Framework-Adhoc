@@ -35,6 +35,15 @@ public class Engine {
     }
     
     /**
+     * Test if current environment is on cloud or not
+     * 
+     * @return if current environment is on cloud
+     */
+    public static boolean isOnCloud() {
+        return onCloud;
+    }
+    
+    /**
      * Determine if an invocation should be migrated to the cloud
      * @return true if should migrate
      */

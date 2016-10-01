@@ -31,7 +31,10 @@ public class Schedular {
     public synchronized int availableNum() {
         return hosts.size();
     }
-    
+    /**
+     * Check if there are available hosts
+     * @return true if there are available hosts
+     */
     public synchronized boolean haveAvailable() {
         return availableNum() > 0;
     }
