@@ -7,15 +7,16 @@ import java.io.Serializable;
 import org.junit.Before;
 import org.junit.Test;
 
-import mobilecloud.invocation.NoApplicationExecutableException;
-import mobilecloud.invocation.RemoteInvocationHandler;
-import mobilecloud.invocation.RemoteInvocationRequest;
-import mobilecloud.invocation.RemoteInvocationResponse;
+import mobilecloud.api.RemoteInvocationRequest;
+import mobilecloud.api.RemoteInvocationResponse;
+import mobilecloud.api.Response;
 import mobilecloud.server.Server;
-import mobilecloud.utils.Response;
+import mobilecloud.server.handler.invocation.NoApplicationExecutableException;
+import mobilecloud.server.handler.invocation.RemoteInvocationHandler;
 
 public class RemoteInvocationHandlerTest {
     
+    Server server = new Server();
     private RemoteInvocationRequest req;
     private Foo f;
     
@@ -37,7 +38,8 @@ public class RemoteInvocationHandlerTest {
     
     @Before
     public void setUp() {
-        Server.getInstance().registerClassLoader("0", ClassLoader.getSystemClassLoader());
+        server = new Server();
+        server.registerClassLoader("0", ClassLoader.getSystemClassLoader());
         req = new RemoteInvocationRequest().setApplicationId("0").setInvoker(f = new Foo())
                 .setClazzName(Foo.class.getName()).setMethodName("sum")
                 .setArgTypesName(new String[] { String.class.getName(), int.class.getName() })
@@ -47,7 +49,7 @@ public class RemoteInvocationHandlerTest {
     @Test
     public void testHandleWithoutExecutable() throws Exception {
         req.setApplicationId("");
-        RemoteInvocationHandler handler = new RemoteInvocationHandler();
+        RemoteInvocationHandler handler = new RemoteInvocationHandler(server);
         Response resp = handler.handle(req);
         assertTrue(resp instanceof RemoteInvocationResponse);
         assertFalse(resp.isSuccess());
@@ -57,7 +59,7 @@ public class RemoteInvocationHandlerTest {
     @Test
     public void testHandleWithNullInvoker() throws Exception {
         req.setInvoker(null);
-        RemoteInvocationHandler handler = new RemoteInvocationHandler();
+        RemoteInvocationHandler handler = new RemoteInvocationHandler(server);
         Response resp = handler.handle(req);
         assertTrue(resp instanceof RemoteInvocationResponse);
         assertFalse(resp.isSuccess());
@@ -67,7 +69,7 @@ public class RemoteInvocationHandlerTest {
     @Test
     public void testHandleWithInvokeTargetException() throws Exception {
         req.setArgs(new Serializable[]{"a", 1});
-        RemoteInvocationHandler handler = new RemoteInvocationHandler();
+        RemoteInvocationHandler handler = new RemoteInvocationHandler(server);
         Response resp = handler.handle(req);
         assertTrue(resp instanceof RemoteInvocationResponse);
         assertFalse(resp.isSuccess());
@@ -77,7 +79,7 @@ public class RemoteInvocationHandlerTest {
     @Test
     public void testHandleWithWrongArgumentType() throws Exception {
         req.setArgs(new Serializable[]{1, 2});
-        RemoteInvocationHandler handler = new RemoteInvocationHandler();
+        RemoteInvocationHandler handler = new RemoteInvocationHandler(server);
         Response resp = handler.handle(req);
         assertTrue(resp instanceof RemoteInvocationResponse);
         assertFalse(resp.isSuccess());
@@ -86,7 +88,7 @@ public class RemoteInvocationHandlerTest {
     
     @Test
     public void testHandleWithRightConfiguration() throws Exception {
-        RemoteInvocationHandler handler = new RemoteInvocationHandler();
+        RemoteInvocationHandler handler = new RemoteInvocationHandler(server);
         Response resp = handler.handle(req);
         assertTrue(resp instanceof RemoteInvocationResponse);
         assertTrue(resp.isSuccess());
@@ -100,7 +102,7 @@ public class RemoteInvocationHandlerTest {
     @Test
     public void testHandlePrivateMethod() throws Exception {
         req.setArgTypesName(new String[]{int.class.getName(), int.class.getName()}).setArgs(new Serializable[]{1,2});
-        RemoteInvocationHandler handler = new RemoteInvocationHandler();
+        RemoteInvocationHandler handler = new RemoteInvocationHandler(server);
         Response resp = handler.handle(req);
         assertTrue(resp instanceof RemoteInvocationResponse);
         assertTrue(resp.isSuccess());

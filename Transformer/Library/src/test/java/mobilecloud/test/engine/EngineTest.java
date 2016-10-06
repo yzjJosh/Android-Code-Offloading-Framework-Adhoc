@@ -2,43 +2,33 @@ package mobilecloud.test.engine;
 
 import static org.junit.Assert.*;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.ObjectInputStream;
-import java.io.OutputStream;
 import java.lang.reflect.Method;
-import java.net.Socket;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
+
+import android.content.Context;
+
+import org.mockito.Matchers;
 
 import lombok.NonNull;
+import mobilecloud.api.RemoteInvocationResponse;
+import mobilecloud.api.Request;
+import mobilecloud.api.Response;
 import mobilecloud.client.Client;
-import mobilecloud.client.DefaultSocketBuilder;
-import mobilecloud.client.SocketBuilder;
 import mobilecloud.engine.Engine;
-import mobilecloud.engine.Host;
 import mobilecloud.engine.RemoteExecutionFailedException;
-import mobilecloud.engine.Schedular;
-import mobilecloud.invocation.RemoteInvocationRequest;
-import mobilecloud.invocation.RemoteInvocationResponse;
+import mobilecloud.engine.host.Host;
+import mobilecloud.engine.host.monitor.HostMonitor;
+import mobilecloud.engine.host.monitor.HostStatusChangeListener;
+import mobilecloud.engine.schedular.Schedular;
 import mobilecloud.lib.Remotable;
 import mobilecloud.server.Server;
-import mobilecloud.test.Utils;
-import mobilecloud.utils.Response;
 
 public class EngineTest {
-    
-    private class MockSocketBuilder implements SocketBuilder {
-        @Override
-        public Socket build(String ip, int port) throws Exception {
-            return socket;
-        }
-    }
     
     private static class ListNode implements Remotable {
         
@@ -166,70 +156,13 @@ public class EngineTest {
         }
     }
     
-    private ByteArrayInputStream buffer;
     
-    private class MockInputStream extends InputStream {
-        @Override
-        public int read() throws IOException {
-            return buffer.read();
-        }
-        
-    }
     
-    private class MockOutputStream extends OutputStream {
-        
-        private ByteArrayOutputStream os = new ByteArrayOutputStream();
-
-        @Override
-        public void write(int b) throws IOException {
-            os.write(b);
-        }
-        
-        @Override
-        public void flush() throws IOException {
-            super.flush();
-            byte[] requestBytes = os.toByteArray();
-            ObjectInputStream is = new ObjectInputStream(new ByteArrayInputStream(requestBytes));
-            RemoteInvocationRequest req = null;
-            try {
-                req = (RemoteInvocationRequest) is.readObject();
-            } catch (ClassNotFoundException e) {
-                e.printStackTrace();
-            }
-            Response resp = Server.getInstance().serve(req);
-            RemoteInvocationResponse invocResp = (RemoteInvocationResponse) resp;
-            setListMetaData((List)invocResp.getInvoker());
-            if(invocResp.getReturnValue() instanceof List) {
-                setListMetaData((List) invocResp.getReturnValue());
-            }
-            buffer = new ByteArrayInputStream(Utils.toBytesArray(resp));
-        }
-        
-        private void setListMetaData(List list) {
-            setNewObjectMetaData(list);
-            ListNode node = list.head;
-            while(node != null) {
-                setNewObjectMetaData(node);
-                node = node.next;
-            }
-        }
-        
-        private void setNewObjectMetaData(Object obj) {
-            if(obj instanceof Remotable) {
-                Remotable r = (Remotable) obj;
-                if(!r.isOnServer()) {
-                    r.setIsNew(true);
-                    r.setIsOnServer(true);
-                }
-            }
-        }
-        
-    }
-    
-    private final static String AppName = "TestApp";
-    private Socket socket;
-    private Host h = new Host("192.168.1.1", 0);
+    private final String AppName = "test";
     private Engine engine;
+    private Schedular schedular;
+    private Client client;
+    public Server server;
     
     private Method add;
     private Method remove;
@@ -243,15 +176,39 @@ public class EngineTest {
     
     @Before
     public void setUp() throws Exception {
-        Schedular.getInstance().addHost(h);
-        Client.getInstance().setSocketBuilder(new MockSocketBuilder());
-        Server.getInstance().registerClassLoader(AppName, ClassLoader.getSystemClassLoader());
-        engine = new Engine();
-        engine.setAppName(AppName);
+        Host host = new Host("192.168.0.1", 0);
         
-        socket = Mockito.mock(Socket.class);
-        Mockito.when(socket.getOutputStream()).thenReturn(new MockOutputStream());
-        Mockito.when(socket.getInputStream()).thenReturn(new MockInputStream());
+        schedular = Mockito.mock(Schedular.class);
+        Mockito.when(schedular.schedule()).thenReturn(host);
+        Mockito.when(schedular.trySchedule()).thenReturn(host);
+        Mockito.when(schedular.haveAvailable()).thenReturn(true);
+        Mockito.when(schedular.availableNum()).thenReturn(1);
+        
+        server = new Server();
+        server.registerClassLoader(AppName, ClassLoader.getSystemClassLoader());
+        
+        client = Mockito.mock(Client.class);
+        Mockito.when(client.request(Matchers.any(Request.class))).thenAnswer(new Answer<Response>() {
+            @Override
+            public Response answer(InvocationOnMock invocation) throws Throwable {
+                Response resp = server.serve((Request) invocation.getArguments()[0]);
+                RemoteInvocationResponse invocResp = (RemoteInvocationResponse) resp;
+                setListMetaData((List)invocResp.getInvoker());
+                if(invocResp.getReturnValue() instanceof List) {
+                    setListMetaData((List) invocResp.getReturnValue());
+                }
+                return resp;
+            }
+        });
+        
+        Context context = Mockito.mock(Context.class);
+        Mockito.when(context.getPackageName()).thenReturn(AppName);
+        
+        HostMonitor monitor = Mockito.mock(HostMonitor.class);
+        Mockito.when(monitor.withHostStatusChangeListener(Mockito.any(HostStatusChangeListener.class))).thenCallRealMethod();
+        
+        Engine.localInit(context, monitor);
+        engine = new Engine(schedular, client);
         
         add = List.class.getMethod("add", int.class);
         remove = List.class.getMethod("remove", int.class);
@@ -270,10 +227,23 @@ public class EngineTest {
         l.size = 4;
     }
     
-    @After
-    public void tearDown() {
-        Schedular.getInstance().removeHost(h);
-        Client.getInstance().setSocketBuilder(new DefaultSocketBuilder());
+    private void setListMetaData(List list) {
+        setNewObjectMetaData(list);
+        ListNode node = list.head;
+        while(node != null) {
+            setNewObjectMetaData(node);
+            node = node.next;
+        }
+    }
+    
+    private void setNewObjectMetaData(Object obj) {
+        if(obj instanceof Remotable) {
+            Remotable r = (Remotable) obj;
+            if(!r.isOnServer()) {
+                r.setIsNew(true);
+                r.setIsOnServer(true);
+            }
+        }
     }
 
     @Test

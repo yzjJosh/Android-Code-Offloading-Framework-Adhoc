@@ -1,5 +1,6 @@
 package mobilecloud.engine;
 
+import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.HashMap;
@@ -23,115 +24,111 @@ public class ObjectMigrator {
     private Map<Integer, Remotable> newObjects = new HashMap<>();
     
     /**
-     * A wrapper of moveOut(Remotable obj) function. If obj is not remotable, do nothing
-     * @param obj the object to send out
+     * Mark an object as a remote object
+     * 
+     * @param obj
+     *            the object to send out
      */
     public void moveOut(Object obj) {
-        if(obj instanceof Remotable) {
-            moveOut((Remotable) obj);
-        }
-    }
-    
-    /**
-     * Mark an object as a remote object
-     * @param obj the object to send out
-     */
-    public void moveOut(Remotable obj) {
-        if(obj == null || obj.isOnServer()) {
+        if(obj == null) {
             return;
-        }
-        obj.setIsNew(false);
-        obj.setIsOnServer(true);
-        obj.setId(System.identityHashCode(obj));
-        remoteObjs.put(obj.getId(), obj);
-        migratedObjects.add(obj.getId());
-        //Scan fields and keep marking them as in the server
-        for(Field f: obj.getClass().getDeclaredFields()) {
-            int modifier = f.getModifiers();
-            if (Modifier.isStatic(modifier) || Modifier.isTransient(modifier)) {
-                // If this field is static or transient, we can ignore it
-                // because it cannot be migrate to server
-                continue;
+        } else if(obj.getClass().isArray()) {
+            int len = Array.getLength(obj);
+            for (int i = 0; i < len; i++) {
+                moveOut(Array.get(obj, i));
             }
-            f.setAccessible(true);
-            Object val = null;
-            try {
-                val = f.get(obj);
-            } catch (IllegalArgumentException | IllegalAccessException e) {
-                e.printStackTrace();
+        } else if (obj instanceof Remotable) {
+            Remotable r = (Remotable) obj;
+            if(r.isOnServer()) {
+                return;
             }
-            if(val == null || !(val instanceof Remotable)) {
-                // Value is not remotable, unnecessary to mark it
-                continue;
+            r.setIsNew(false);
+            r.setIsOnServer(true);
+            r.setId(System.identityHashCode(r));
+            remoteObjs.put(r.getId(), r);
+            migratedObjects.add(r.getId());
+            //Scan fields and keep marking them as in the server
+            for(Field f: r.getClass().getDeclaredFields()) {
+                int modifier = f.getModifiers();
+                if (Modifier.isStatic(modifier) || Modifier.isTransient(modifier)) {
+                    // If this field is static or transient, we can ignore it
+                    // because it cannot be migrate to server
+                    continue;
+                }
+                f.setAccessible(true);
+                Object val = null;
+                try {
+                    val = f.get(r);
+                } catch (IllegalArgumentException | IllegalAccessException e) {
+                    e.printStackTrace();
+                }
+                moveOut(val);
             }
-            moveOut((Remotable) val);
-        }
+        } 
     }
     
-    /**
-     * A wrapper of sync(Remotable remoteObj) function. If remoteObj is not remotable, do nothing
-     * @param obj the object to synchronize
-     * @return the local version of the synchronized object
-     */
-    public Object sync(Object obj) {
-        if (obj instanceof Remotable) {
-            return sync((Remotable) obj);
-        } else {
-            return obj;
-        }
-    }
     
     /**
      * Synchronize corresponding local copies of a remote object
      * @param obj the object to sync
      * @return The local version of the synchronized object
      */
-    public Remotable sync(Remotable remoteObj) {
-        return sync(remoteObj, new HashSet<Integer>());
+    public Object sync(Object obj) {
+        if(obj == null || (!(obj instanceof Remotable) && !obj.getClass().isArray())) {
+            return obj;
+        } else {
+            return sync(obj, new HashSet<Integer>());
+        }
     }
+    
 
-    private Remotable sync(Remotable obj, Set<Integer> visited) {
-        if(obj == null) {
+    private Object sync(Object obj, Set<Integer> visited) {
+        if (obj == null) {
+            return obj;
+        } else if (obj.getClass().isArray()) {
+            int len = Array.getLength(obj);
+            for (int i = 0; i < len; i++) {
+                Object item = sync(Array.get(obj, i), visited);
+                Array.set(obj, i, item);
+            }
+            return obj;
+        } else if(obj instanceof Remotable) {
+            Remotable r = (Remotable) obj;
+            Remotable local = null;
+            if (r.isNew()) {
+                if (newObjects.containsKey(r.getId())) {
+                    local = newObjects.get(r.getId());
+                } else {
+                    local = r;
+                    newObjects.put(local.getId(), local);
+                }
+            } else {
+                local = remoteObjs.get(r.getId());
+            }
+            if(!visited.add(local.getId())) {
+                return local;
+            }
+            for(Field f: local.getClass().getDeclaredFields()) {
+                int modifier = f.getModifiers();
+                if (Modifier.isStatic(modifier) || Modifier.isTransient(modifier)) {
+                    // If this field is static or transient, we can ignore it
+                    // because it cannot be migrate to server
+                    continue;
+                }
+                f.setAccessible(true);
+                Object val = null;
+                try {
+                    val = f.get(r);
+                    // the value of this field is remotable, we update it recursively
+                    f.set(local, sync(val, visited));
+                } catch (IllegalArgumentException | IllegalAccessException e) {
+                    e.printStackTrace();
+                }
+            }
+            return local;
+        } else {
             return obj;
         }
-        Remotable local = null;
-        if (obj.isNew()) {
-            if (newObjects.containsKey(obj.getId())) {
-                local = newObjects.get(obj.getId());
-            } else {
-                local = obj;
-                newObjects.put(local.getId(), local);
-            }
-        } else {
-            local = remoteObjs.get(obj.getId());
-        }
-        if(!visited.add(local.getId())) {
-            return local;
-        }
-        for(Field f: local.getClass().getDeclaredFields()) {
-            int modifier = f.getModifiers();
-            if (Modifier.isStatic(modifier) || Modifier.isTransient(modifier)) {
-                // If this field is static or transient, we can ignore it
-                // because it cannot be migrate to server
-                continue;
-            }
-            f.setAccessible(true);
-            Object val = null;
-            try {
-                val = f.get(obj);
-                if (val == null || !(val instanceof Remotable)) {
-                    // value is not remotable, which means we do not have meta
-                    // data of this object. We simply copy it.
-                    f.set(local, val);
-                } else {
-                    // the value of this field is remotable, we update it recursively
-                    f.set(local, sync((Remotable)val, visited));
-                }
-            } catch (IllegalArgumentException | IllegalAccessException e) {
-                e.printStackTrace();
-            }
-        }
-        return local;
     }
     
     /**

@@ -98,6 +98,22 @@ public class ObjectMigratorTest {
             }
             head = temp.next;
         }
+        
+        public void addNodes(ListNode[] nodes) {
+            ListNode temp = new ListNode(0);
+            temp.next = head;
+            ListNode prev = temp;
+            for(ListNode node = head; node != null; node = node.next) {
+                prev = node;
+            }
+            for(ListNode node: nodes) {
+                prev.next = node;
+                prev = node;
+                size ++;
+            }
+            prev.next = null;
+            head = temp.next;
+        }
 
         @Override
         public void setIsOnServer(boolean val) {
@@ -164,7 +180,7 @@ public class ObjectMigratorTest {
     }
     
     @Test
-    public void testMoveOut() {
+    public void testMoveOut1() {
         migrator.moveOut(l);
         assertTrue(l.isOnServer());
         assertFalse(l.isNew());
@@ -176,6 +192,16 @@ public class ObjectMigratorTest {
         assertFalse(l2.isNew());
         assertTrue(l3.isOnServer());
         assertFalse(l3.isNew());
+    }
+    
+    @Test
+    public void testMoveOut2() {
+        ListNode[] nodes = new ListNode[]{l0, l1, l2, l3};
+        migrator.moveOut(nodes);
+        for(ListNode node: nodes) {
+            assertTrue(node.isOnServer());
+            assertFalse(node.isNew());
+        }
     }
     
     @Test
@@ -352,6 +378,56 @@ public class ObjectMigratorTest {
         assertTrue(back3.isOnServer());
         assertEquals(3, back3.val);
         assertEquals(back0, back3.next);
+    }
+    
+    @Test
+    public void testSync5() throws ClassNotFoundException, IOException {
+        l.head = null;
+        l.size = 0;
+        ListNode[] nodes = new ListNode[]{l0, l1, l2, l3};
+        migrator.moveOut(l);
+        migrator.moveOut(nodes);
+        List cloud = (List) sendViaNetWork(l);
+        ListNode[] cloudNodes = (ListNode[]) sendViaNetWork(nodes);
+        cloud.addNodes(cloudNodes);
+        List cloudBack = (List) sendViaNetWork(cloud);
+        ListNode[] cloudBackNodes = (ListNode[]) sendViaNetWork(cloudNodes);
+        List prevL = l;
+        ListNode prevL0 = l0;
+        ListNode prevL1 = l1;
+        ListNode prevL2 = l2;
+        ListNode prevL3 = l3;
+        List l = (List) migrator.sync(cloudBack);
+        nodes = (ListNode[]) migrator.sync(cloudBackNodes);
+        assertTrue(l.isOnServer());
+        assertFalse(l.isNew());
+        assertEquals(4, l.size);
+        assertEquals(l.head, l0);
+        assertEquals(prevL, l);
+        assertTrue(l0.isOnServer());
+        assertFalse(l0.isNew());
+        assertEquals(0, l0.val);
+        assertEquals(l0.next, l1);
+        assertEquals(prevL0, l0);
+        assertTrue(l1.isOnServer());
+        assertFalse(l1.isNew());
+        assertEquals(1, l1.val);
+        assertEquals(l1.next, l2);
+        assertEquals(prevL1, l1);
+        assertTrue(l2.isOnServer());
+        assertFalse(l2.isNew());
+        assertEquals(2, l2.val);
+        assertEquals(l2.next, l3);
+        assertEquals(prevL2, l2);
+        assertTrue(l3.isOnServer());
+        assertFalse(l3.isNew());
+        assertEquals(3, l3.val);
+        assertEquals(prevL3, l3);
+        assertNull(l3.next);
+        assertEquals(l0, cloudBackNodes[0]);
+        assertEquals(l1, cloudBackNodes[1]);
+        assertEquals(l2, cloudBackNodes[2]);
+        assertEquals(l3, cloudBackNodes[3]);
     }
     
     @Test
@@ -548,6 +624,21 @@ public class ObjectMigratorTest {
         assertFalse(back3.isOnServer());
         assertEquals(3, back3.val);
         assertEquals(back0, back3.next);
+    }
+    
+    @Test
+    public void testJoinObjects7() {
+        ListNode[] nodes = new ListNode[]{l0, l1, l2, l3};
+        migrator.moveOut(nodes);
+        migrator.joinObjects();
+        assertFalse(l0.isNew());
+        assertFalse(l0.isOnServer());
+        assertFalse(l1.isNew());
+        assertFalse(l1.isOnServer());
+        assertFalse(l2.isNew());
+        assertFalse(l2.isOnServer());
+        assertFalse(l3.isNew());
+        assertFalse(l3.isOnServer());
     }
 
 }

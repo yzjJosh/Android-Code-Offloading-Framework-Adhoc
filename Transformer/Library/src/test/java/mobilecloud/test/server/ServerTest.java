@@ -4,24 +4,23 @@ import static org.junit.Assert.*;
 
 import java.io.Serializable;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import mobilecloud.invocation.RemoteInvocationHandler;
-import mobilecloud.invocation.RemoteInvocationRequest;
-import mobilecloud.invocation.RemoteInvocationResponse;
-import mobilecloud.server.Handler;
+import mobilecloud.api.IllegalRequestResponse;
+import mobilecloud.api.InternalServerErrorResponse;
+import mobilecloud.api.RemoteInvocationRequest;
+import mobilecloud.api.RemoteInvocationResponse;
+import mobilecloud.api.Request;
+import mobilecloud.api.Response;
 import mobilecloud.server.IllegalRequestException;
-import mobilecloud.server.IllegalRequestResponse;
 import mobilecloud.server.InternalServerError;
-import mobilecloud.server.InternalServerErrorResponse;
 import mobilecloud.server.Server;
-import mobilecloud.utils.Request;
-import mobilecloud.utils.Response;
+import mobilecloud.server.handler.Handler;
 
 public class ServerTest {
     
+    private Server server;
     private RemoteInvocationRequest req;
     private Foo f;
     
@@ -37,7 +36,8 @@ public class ServerTest {
     
     @Before
     public void setUp() {
-        Server.getInstance().registerClassLoader("0", ClassLoader.getSystemClassLoader());
+        server = new Server();
+        server.registerClassLoader("0", ClassLoader.getSystemClassLoader());
         req = new RemoteInvocationRequest().setApplicationId("0").setInvoker(f = new Foo())
                 .setClazzName(Foo.class.getName()).setMethodName("sum")
                 .setArgTypesName(new String[] { String.class.getName(), int.class.getName() })
@@ -46,13 +46,13 @@ public class ServerTest {
     
     @Test
     public void testServeInternalError() {
-        Server.getInstance().registerHandler(RemoteInvocationRequest.class.getName(), new Handler() {
+        server.registerHandler(RemoteInvocationRequest.class.getName(), new Handler() {
             @Override
             public Response handle(Request request) throws Exception {
                 throw new NullPointerException();
             }
         });
-        Response resp = Server.getInstance().serve(req);
+        Response resp = server.serve(req);
         assertTrue(resp instanceof InternalServerErrorResponse);
         assertFalse(resp.isSuccess());
         assertTrue(resp.getThrowable() instanceof InternalServerError);
@@ -61,7 +61,7 @@ public class ServerTest {
     @Test
     public void testServeIllegalRequest() {
         @SuppressWarnings("serial")
-        Response resp = Server.getInstance().serve(new Request() {});
+        Response resp = server.serve(new Request() {});
         assertTrue(resp instanceof IllegalRequestResponse);
         assertFalse(resp.isSuccess());
         assertTrue(resp.getThrowable() instanceof IllegalRequestException);
@@ -69,7 +69,7 @@ public class ServerTest {
     
     @Test
     public void testServeLegalRequest() {
-        Response resp = Server.getInstance().serve(req);
+        Response resp = server.serve(req);
         assertTrue(resp instanceof RemoteInvocationResponse);
         assertTrue(resp.isSuccess());
         RemoteInvocationResponse res = (RemoteInvocationResponse) resp;
@@ -77,11 +77,6 @@ public class ServerTest {
         assertEquals(res.getArgs()[1], 5);
         assertEquals(res.getInvoker(), f);
         assertEquals(res.getReturnValue(), 6);
-    }
-    
-    @After
-    public void tearDown() {
-        Server.getInstance().registerHandler(RemoteInvocationRequest.class.getName(), new RemoteInvocationHandler());
     }
     
 }

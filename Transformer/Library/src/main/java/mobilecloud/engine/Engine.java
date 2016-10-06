@@ -3,28 +3,30 @@ package mobilecloud.engine;
 import java.io.Serializable;
 import java.lang.reflect.Method;
 
-import lombok.Getter;
-import lombok.Setter;
+import android.content.Context;
+import lombok.NonNull;
+import mobilecloud.api.RemoteInvocationRequest;
+import mobilecloud.api.RemoteInvocationResponse;
+import mobilecloud.api.Response;
 import mobilecloud.client.Client;
-import mobilecloud.invocation.RemoteInvocationRequest;
-import mobilecloud.invocation.RemoteInvocationResponse;
-import mobilecloud.utils.Response;
+import mobilecloud.engine.host.Host;
+import mobilecloud.engine.host.monitor.HostMonitor;
+import mobilecloud.engine.host.monitor.HostStatusChangeListener;
+import mobilecloud.engine.schedular.Schedular;
 
 /**
  * The cloud compute engine
  */
 public class Engine {
     
-    //Singleton instance
+    // Singleton instance
     private static Engine engine;
     
-    //A flag to indicate if current environment is on cloud or not
-    private static boolean onCloud = false;
+    // A flag to indicate if current environment is on cloud or not
+    private static boolean onCloud;
     
-    @Getter
-    @Setter
-    private String AppName;
-    
+    // The Android application context
+    private static Context context;
     
     /**
      * Indicate that current environment is on cloud. Cloud environment should invoke 
@@ -32,6 +34,34 @@ public class Engine {
      */
     public static void cloudInit() {
         onCloud = true;
+    }
+    
+    /**
+     * Initialize local environment with Android Context and a HostMonitor
+     * @param ctxt the Android application context
+     * @param monitor the Monitor which is used to monitor server hosts
+     */
+    public static void localInit(@NonNull Context ctxt, @NonNull HostMonitor monitor) {
+        onCloud = false;
+        context = ctxt;
+        monitor.withHostStatusChangeListener(new HostStatusChangeListener() {
+            @Override
+            public void onHostStatusChange(Host host, boolean isAlive) {
+                if(isAlive) {
+                    Schedular.getInstance().addHost(host);
+                } else {
+                    Schedular.getInstance().removeHost(host);
+                }
+            }
+        }).start();
+    }
+    
+    /**
+     * Initialize local environment with Android Context and the default host monitor
+     * @param ctxt the Android application context
+     */
+    public static void localInit(Context ctxt) {
+        localInit(ctxt, HostMonitor.getInstance());
     }
     
     /**
@@ -43,21 +73,63 @@ public class Engine {
         return onCloud;
     }
     
+    
+    /**
+     * Get the current applciation name
+     * @return the app name
+     */
+    public static String appName() {
+        if (context == null) {
+            throw new NullPointerException("No context available! Please init engine with available context!");
+        } else {
+            return context.getPackageName();
+        }
+    }
+    
+    /**
+     * Indicate current host
+     */
+    private static class LocalHost extends Host {
+        public LocalHost() {
+            super("localHost", 0);
+        }
+    }
+    
+    
+
+    private final Schedular schedular;
+    private final Client client;
+    
+    public Engine(@NonNull Schedular schedular, @NonNull Client client) {
+        this.schedular = schedular;
+        this.client = client;
+        
+        // Add local host to this schedular, so that schedular can schedule
+        // local host to invoke a method.
+        this.schedular.addHost(new LocalHost());
+    }
+    
     /**
      * Determine if an invocation should be migrated to the cloud
      * @return true if should migrate
      */
     public boolean shouldMigrate(Method method, Object invoker, Object... args) {
-        if(onCloud || !Schedular.getInstance().haveAvailable()) {
-            return false;
-        }
-        if(!(invoker instanceof Serializable)) {
+        if(isOnCloud() || !schedular.haveAvailable()) {
             return false;
         }
         for(Object arg: args) {
             if(!(arg instanceof Serializable)) {
                 return false;
             }
+        }
+        if(!(invoker instanceof Serializable)) {
+            return false;
+        }
+        if (schedular.trySchedule() instanceof LocalHost) {
+            // If the next host to be scheduled is local host, we should do
+            // computation locally, thus return false.
+            schedular.schedule();
+            return false;
         }
         return true;
     }
@@ -68,12 +140,8 @@ public class Engine {
      * @throws Exception if execution fails
      */
     public Object invokeRemotely(Method method, Object invoker, Object... args) {
-        if (this.getAppName() == null) {
-            throw new IllegalStateException("No app name found!");
-        }
-
         // Check available hosts
-        Host host = Schedular.getInstance().schedule();
+        Host host = schedular.schedule();
         if (host == null) {
             throw new IllegalStateException("No host available!");
         }
@@ -90,7 +158,7 @@ public class Engine {
 
         try {
             // Send the request
-            Response resp = Client.getInstance().request(request);
+            Response resp = client.request(request);
 
             // Synchronize objects firstly
             if (resp instanceof RemoteInvocationResponse) {
@@ -125,7 +193,7 @@ public class Engine {
     private RemoteInvocationRequest buildInvocationRequest(String ip, int port, Method method, Object invoker,
             Object[] args) {
         RemoteInvocationRequest request = new RemoteInvocationRequest();
-        request.setApplicationId(getAppName()).setClazzName(method.getDeclaringClass().getName())
+        request.setApplicationId(appName()).setClazzName(method.getDeclaringClass().getName())
                 .setMethodName(method.getName()).setInvoker((Serializable)invoker).setIp(ip).setPort(port);
         Class<?>[] params = method.getParameterTypes();
         String[] argTypes = new String[params.length];
@@ -146,7 +214,7 @@ public class Engine {
         if(engine == null) {
             synchronized(Engine.class) {
                 if(engine == null) {
-                    engine = new Engine();
+                    engine = new Engine(Schedular.getInstance(), Client.getInstance());
                 }
             }
         }

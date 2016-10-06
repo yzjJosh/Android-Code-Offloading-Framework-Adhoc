@@ -4,13 +4,21 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import lombok.NonNull;
-import mobilecloud.invocation.RemoteInvocationHandler;
-import mobilecloud.invocation.RemoteInvocationRequest;
-import mobilecloud.upload.UploadApplicationExecutableHandler;
-import mobilecloud.upload.UploadApplicationExecutableRequest;
-import mobilecloud.utils.Request;
-import mobilecloud.utils.Response;
+import mobilecloud.api.IllegalRequestResponse;
+import mobilecloud.api.InternalServerErrorResponse;
+import mobilecloud.api.MonitorHostRequest;
+import mobilecloud.api.RemoteInvocationRequest;
+import mobilecloud.api.Request;
+import mobilecloud.api.Response;
+import mobilecloud.api.UploadApplicationExecutableRequest;
+import mobilecloud.server.handler.Handler;
+import mobilecloud.server.handler.invocation.RemoteInvocationHandler;
+import mobilecloud.server.handler.monitorhost.MonitorHostRequestHandler;
+import mobilecloud.server.handler.upload.UploadApplicationExecutableHandler;
 
+/**
+ * A server object
+ */
 public class Server {
     
     private static Server instance;
@@ -18,11 +26,12 @@ public class Server {
     private Map<String, Handler> handlers;
     private Map<String, ClassLoader> classLoaders;
     
-    private Server() {
+    public Server() {
         this.handlers = new ConcurrentHashMap<>();
         this.classLoaders = new ConcurrentHashMap<>();
-        this.registerHandler(RemoteInvocationRequest.class.getName(), new RemoteInvocationHandler());
-        this.registerHandler(UploadApplicationExecutableRequest.class.getName(), new UploadApplicationExecutableHandler());
+        this.registerHandler(RemoteInvocationRequest.class.getName(), new RemoteInvocationHandler(this));
+        this.registerHandler(UploadApplicationExecutableRequest.class.getName(), new UploadApplicationExecutableHandler(this));
+        this.registerHandler(MonitorHostRequest.class.getName(), new MonitorHostRequestHandler());
     }
     
     /**
@@ -42,7 +51,7 @@ public class Server {
      * @param cl the class loader for that application
      * @return this server
      */
-    public Server registerClassLoader(String applicationId, @NonNull ClassLoader cl) {
+    public Server registerClassLoader(@NonNull String applicationId, @NonNull ClassLoader cl) {
         this.classLoaders.put(applicationId, cl);
         return this;
     }
@@ -53,7 +62,16 @@ public class Server {
      * @return the class loader
      */
     public ClassLoader getClassLoader(String applicationId) {
-        return this.classLoaders.get(applicationId);
+        ClassLoader cl = classLoaders.get(applicationId);
+        if(cl == null) {
+            try {
+                cl = new APKLoader().loadAPK(applicationId);
+                registerClassLoader(applicationId, cl);
+            } catch(Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return cl;
     }
     
     /**

@@ -7,32 +7,18 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.mockito.Matchers;
 
+import mobilecloud.api.Request;
+import mobilecloud.api.Response;
 import mobilecloud.client.Client;
-import mobilecloud.client.DefaultSocketBuilder;
 import mobilecloud.client.SocketBuilder;
 import mobilecloud.test.Utils;
-import mobilecloud.utils.Request;
-import mobilecloud.utils.Response;
 
 public class ClientTest {
-    
-    private Socket socket;
-    
-    @Before
-    public void setUp() {
-        socket = Mockito.mock(Socket.class);
-        Client.getInstance().setSocketBuilder(new MockSocketBuilder());
-    }
-    
-    @After
-    public void tearDown() {
-        Client.getInstance().setSocketBuilder(new DefaultSocketBuilder());
-    }
     
     private static class TestRequest extends Request {
         private static final long serialVersionUID = 1L;
@@ -42,11 +28,17 @@ public class ClientTest {
         private static final long serialVersionUID = 1L;
     }
     
-    private class MockSocketBuilder implements SocketBuilder {
-        @Override
-        public Socket build(String ip, int port) throws Exception {
-            return socket;
-        }
+    private Socket socket;
+    private Client client;
+    
+    @Before
+    public void setUp() throws Exception {
+        socket = Mockito.mock(Socket.class);
+        
+        SocketBuilder builder = Mockito.mock(SocketBuilder.class);
+        Mockito.when(builder.build(Matchers.anyString(), Matchers.anyInt())).thenReturn(socket);
+        
+        client = new Client(builder);
     }
 
     @Test
@@ -58,7 +50,7 @@ public class ClientTest {
         Mockito.when(socket.getInputStream()).thenReturn(is);
         Mockito.when(socket.getOutputStream()).thenReturn(os);
         
-        Response res = Client.getInstance().request(req);
+        Response res = client.request(req);
         assertTrue(res.isSuccess());
     }
     
@@ -71,7 +63,7 @@ public class ClientTest {
         Mockito.when(socket.getInputStream()).thenReturn(is);
         Mockito.when(socket.getOutputStream()).thenReturn(os);
         
-        Response res = Client.getInstance().request(req);
+        Response res = client.request(req);
         assertFalse(res.isSuccess());
         assertTrue(res.getThrowable() instanceof NullPointerException);
     }

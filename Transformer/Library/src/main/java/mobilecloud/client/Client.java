@@ -5,8 +5,8 @@ import java.io.ObjectOutputStream;
 import java.net.Socket;
 
 import lombok.NonNull;
-import mobilecloud.utils.Request;
-import mobilecloud.utils.Response;
+import mobilecloud.api.Request;
+import mobilecloud.api.Response;
 
 /**
  * A client which interacts with server
@@ -16,7 +16,11 @@ public class Client {
     
     private static Client instance;
     
-    private SocketBuilder builder = new DefaultSocketBuilder();
+    private final SocketBuilder builder;
+    
+    public Client(@NonNull SocketBuilder builder) {
+        this.builder = builder;
+    }
     
     /**
      * Send a request to the server and waits for response
@@ -38,22 +42,14 @@ public class Client {
     }
     
     /**
-     * Set the socket builder of this client. This method is for testing purpose.
-     * @param builder the builder to set
-     */
-    public void setSocketBuilder(SocketBuilder builder) {
-        this.builder = builder;
-    }
-    
-    /**
-     * Get the singleton instance of this client
+     * Get the singleton instance of client
      * @return the client instance
      */
     public static Client getInstance() {
         if(instance == null) {
             synchronized(Client.class) {
                 if(instance == null) {
-                    instance = new Client();
+                    instance = new Client(new DefaultSocketBuilder());
                 }
             }
         }
