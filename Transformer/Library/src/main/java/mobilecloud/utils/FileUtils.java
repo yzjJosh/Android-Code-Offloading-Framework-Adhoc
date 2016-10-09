@@ -1,6 +1,10 @@
 package mobilecloud.utils;
 
+import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 
 /**
  * Utility functions for file manipulations
@@ -15,6 +19,30 @@ public class FileUtils {
         File f = new File(path);
         if(!f.exists()) {
             f.mkdirs();
+        }
+    }
+    
+    /**
+     * Read a file into a byte array
+     * @param path the file path
+     * @return the byte array
+     * @throws IOException if error happens
+     */
+    public static byte[] readBytes(String path) throws IOException {
+        BufferedInputStream is = null;
+        try {
+            is = new BufferedInputStream(new FileInputStream(path));
+            ByteArrayOutputStream arrayOs = new ByteArrayOutputStream();
+            byte[] buffer = new byte[1<<16];
+            int count = 0;
+            while((count = is.read(buffer)) != -1) {
+                arrayOs.write(buffer, 0, count);
+            }
+            return arrayOs.toByteArray();
+        } finally {
+            if(is != null) {
+                is.close();
+            }
         }
     }
 

@@ -6,7 +6,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import lombok.NonNull;
 import mobilecloud.api.MonitorHostRequest;
 import mobilecloud.api.Response;
 import mobilecloud.client.Client;
@@ -33,7 +32,7 @@ public class HostMonitor {
     private HostStatusChangeListener listener;
     private boolean hasStarted;
     
-    public HostMonitor(@NonNull HostProvider provider, @NonNull Client client) {
+    public HostMonitor(HostProvider provider, Client client) {
         this.provider = provider;
         this.client = client;
         this.hasStarted = false;
@@ -150,7 +149,7 @@ public class HostMonitor {
         private Boolean isAlive;
         private boolean stopSign;
 
-        public MonitorThread(@NonNull Host host) {
+        public MonitorThread(Host host) {
             this.host = host;
             this.isAlive = null;
             this.stopSign = false;

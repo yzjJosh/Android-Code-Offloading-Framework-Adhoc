@@ -1,6 +1,5 @@
 package mobilecloud.api;
 
-import lombok.NonNull;
 import mobilecloud.server.InternalServerError;
 
 /**
@@ -11,7 +10,7 @@ public class InternalServerErrorResponse extends Response{
 
     private static final long serialVersionUID = 1L;
 
-    public InternalServerErrorResponse(@NonNull InternalServerError e) {
+    public InternalServerErrorResponse(InternalServerError e) {
         this.setSuccess(false);
         this.setThrowable(e);
     }

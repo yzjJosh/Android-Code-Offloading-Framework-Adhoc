@@ -157,12 +157,12 @@ public class ObjectMigrator {
     @Override
     public String toString() {
         StringBuilder res = new StringBuilder();
-        res.append("===============================================");
-        res.append("Object Migrator id: " + System.identityHashCode(this));
-        res.append("Migrated Object Number: " + migratedObjects.size());
-        res.append("Migrated Objects: " + migratedObjects);
-        res.append("New Object Number: " + newObjects.size());
-        res.append("New Objects: " + newObjects.keySet());
+        res.append("===============================================\n");
+        res.append("Object Migrator id: " + System.identityHashCode(this) + "\n");
+        res.append("Migrated Object Number: " + migratedObjects.size() + "\n");
+        res.append("Migrated Objects: " + migratedObjects + "\n");
+        res.append("New Object Number: " + newObjects.size() + "\n");
+        res.append("New Objects: " + newObjects.keySet() + "\n");
         res.append("===============================================");
         return res.toString();
     }
@@ -173,10 +173,10 @@ public class ObjectMigrator {
      */
     public static String dumpGlobalMetaData() {
         StringBuilder res = new StringBuilder();
-        res.append("===============================================");
-        res.append("Object Migrator Global Information");
-        res.append("Migrated Object Number: " + remoteObjs.size());
-        res.append("Migrated Objects: " + remoteObjs.keySet());
+        res.append("===============================================\n");
+        res.append("Object Migrator Global Information\n");
+        res.append("Migrated Object Number: " + remoteObjs.size() + "\n");
+        res.append("Migrated Objects: " + remoteObjs.keySet() + "\n");
         res.append("===============================================");
         return res.toString();
     }

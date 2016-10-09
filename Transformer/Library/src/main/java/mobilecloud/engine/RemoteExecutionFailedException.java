@@ -8,8 +8,6 @@ public class RemoteExecutionFailedException extends RuntimeException {
 
     private static final long serialVersionUID = 1L;
     
-    private Throwable t;
-    
     public RemoteExecutionFailedException() {
         super();
     }
@@ -18,22 +16,8 @@ public class RemoteExecutionFailedException extends RuntimeException {
         super(message);
     }
     
-    /**
-     * Set the real exception wrapped inside this exception
-     * @param t the throwable
-     * @return this exception itself
-     */
-    public RemoteExecutionFailedException withReaseon(Throwable t) {
-        this.t = t;
-        return this;
-    }
-    
-    /**
-     * Get the exception inside
-     * @return the real exception
-     */
-    public Throwable getReason() {
-        return t;
+    public RemoteExecutionFailedException(String message, Throwable t) {
+        super(message, t);
     }
 
 }

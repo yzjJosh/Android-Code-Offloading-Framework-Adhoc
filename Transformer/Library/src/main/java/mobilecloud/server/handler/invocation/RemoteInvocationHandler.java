@@ -1,14 +1,13 @@
 package mobilecloud.server.handler.invocation;
 
-import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
-import lombok.NonNull;
 import mobilecloud.api.RemoteInvocationRequest;
 import mobilecloud.api.RemoteInvocationResponse;
 import mobilecloud.api.Request;
 import mobilecloud.api.Response;
+import mobilecloud.server.NoApplicationExecutableException;
 import mobilecloud.server.Server;
 import mobilecloud.server.handler.Handler;
 import mobilecloud.utils.ClassUtils;
@@ -20,7 +19,7 @@ public class RemoteInvocationHandler implements Handler {
     
     private Server server;
     
-    public RemoteInvocationHandler(@NonNull Server server) {
+    public RemoteInvocationHandler(Server server) {
         this.server = server;
     }
 
@@ -39,17 +38,25 @@ public class RemoteInvocationHandler implements Handler {
                                     + ", please send application executable to server and try it again."));
         }
         try {
-            Class<?> clazz = ClassUtils.loadClass(loader, invocReq.getClazzName());
+            Class<?> declareClazz = ClassUtils.loadClass(loader, invocReq.getClazzName());
             String[] argTypesName = invocReq.getArgTypesName();
             Class<?>[] argTypes = new Class<?>[argTypesName.length];
             for (int i = 0; i < argTypesName.length; i++) {
                 argTypes[i] = ClassUtils.loadClass(loader, argTypesName[i]);
             }
-            Method method = clazz.getDeclaredMethod(invocReq.getMethodName(), argTypes);
+            Object invoker = ClassUtils.readObject(invocReq.getInvokerData(), loader);
+            Object[] args = (Object[]) ClassUtils.readObject(invocReq.getArgsData(), loader);
+            
+            // Invoke the method
+            Method method = declareClazz.getDeclaredMethod(invocReq.getMethodName(), argTypes);
             method.setAccessible(true);
-            resp.setInvoker(invocReq.getInvoker()).setArgs(invocReq.getArgs());
-            Serializable ret = (Serializable) method.invoke(invocReq.getInvoker(), (Object[]) invocReq.getArgs());
-            return resp.setReturnValue(ret).setSuccess(true);
+            Object ret = method.invoke(invoker, args);
+            
+            resp.setArgsData(ClassUtils.toBytesArray(args))
+                .setInvokerData(ClassUtils.toBytesArray(invoker))
+                .setReturnValueData(ClassUtils.toBytesArray(ret))
+                .setSuccess(true);
+            return resp;
         } catch (InvocationTargetException e) {
             return resp.setSuccess(false).setThrowable(e.getTargetException());
         } catch (Exception e) {

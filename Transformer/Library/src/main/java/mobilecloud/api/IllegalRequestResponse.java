@@ -1,6 +1,5 @@
 package mobilecloud.api;
 
-import lombok.NonNull;
 import mobilecloud.server.IllegalRequestException;
 
 /**
@@ -11,7 +10,7 @@ public class IllegalRequestResponse extends Response{
 
     private static final long serialVersionUID = 1L;
 
-    public IllegalRequestResponse(@NonNull IllegalRequestException e) {
+    public IllegalRequestResponse(IllegalRequestException e) {
         this.setSuccess(false);
         this.setThrowable(e);
     }

@@ -2,6 +2,7 @@ package mobilecloud.test.engine;
 
 import static org.junit.Assert.*;
 
+import java.io.Serializable;
 import java.lang.reflect.Method;
 
 import org.junit.Before;
@@ -14,10 +15,12 @@ import android.content.Context;
 
 import org.mockito.Matchers;
 
-import lombok.NonNull;
+import mobilecloud.api.RemoteInvocationRequest;
 import mobilecloud.api.RemoteInvocationResponse;
 import mobilecloud.api.Request;
 import mobilecloud.api.Response;
+import mobilecloud.api.UploadApplicationExecutableRequest;
+import mobilecloud.api.UploadApplicationExecutableResponse;
 import mobilecloud.client.Client;
 import mobilecloud.engine.Engine;
 import mobilecloud.engine.RemoteExecutionFailedException;
@@ -26,7 +29,10 @@ import mobilecloud.engine.host.monitor.HostMonitor;
 import mobilecloud.engine.host.monitor.HostStatusChangeListener;
 import mobilecloud.engine.schedular.Schedular;
 import mobilecloud.lib.Remotable;
+import mobilecloud.server.APKLoader;
 import mobilecloud.server.Server;
+import mobilecloud.utils.ByteProvider;
+import mobilecloud.utils.ClassUtils;
 
 public class EngineTest {
     
@@ -115,7 +121,7 @@ public class EngineTest {
             head = temp.next;
         }
         
-        public List multiply(@NonNull Integer multiple) {
+        public List multiply(Integer multiple) {
             List l = new List();
             ListNode node = head;
             while(node != null) {
@@ -156,7 +162,18 @@ public class EngineTest {
         }
     }
     
-    
+    @SuppressWarnings("unused")
+    private static class TestSum implements Serializable {
+        private static final long serialVersionUID = 1L;
+
+        public int sum(int a, int b) {
+            return a + b;
+        }
+        
+        public static int sumStatic(int a, int b) {
+            return a + b;
+        }
+    }
     
     private final String AppName = "test";
     private Engine engine;
@@ -167,6 +184,8 @@ public class EngineTest {
     private Method add;
     private Method remove;
     private Method multiply;
+    private Method sum;
+    private Method sumStatic;
     
     private List l;
     private ListNode l0;
@@ -175,7 +194,7 @@ public class EngineTest {
     private ListNode l3;
     
     @Before
-    public void setUp() throws Exception {
+    public void setUp() throws Throwable {
         Host host = new Host("192.168.0.1", 0);
         
         schedular = Mockito.mock(Schedular.class);
@@ -184,35 +203,59 @@ public class EngineTest {
         Mockito.when(schedular.haveAvailable()).thenReturn(true);
         Mockito.when(schedular.availableNum()).thenReturn(1);
         
-        server = new Server();
-        server.registerClassLoader(AppName, ClassLoader.getSystemClassLoader());
+        server = new Server(Mockito.mock(APKLoader.class));
         
         client = Mockito.mock(Client.class);
         Mockito.when(client.request(Matchers.any(Request.class))).thenAnswer(new Answer<Response>() {
             @Override
             public Response answer(InvocationOnMock invocation) throws Throwable {
-                Response resp = server.serve((Request) invocation.getArguments()[0]);
-                RemoteInvocationResponse invocResp = (RemoteInvocationResponse) resp;
-                setListMetaData((List)invocResp.getInvoker());
-                if(invocResp.getReturnValue() instanceof List) {
-                    setListMetaData((List) invocResp.getReturnValue());
+                Request req = (Request) invocation.getArguments()[0];
+                if(req instanceof UploadApplicationExecutableRequest) {
+                    UploadApplicationExecutableRequest up = (UploadApplicationExecutableRequest) req;
+                    server.registerClassLoader(up.getApplicationId(), ClassLoader.getSystemClassLoader());
+                    return new UploadApplicationExecutableResponse().setSuccess(true);
+                } else if(req instanceof RemoteInvocationRequest) {
+                    Response resp = server.serve(req);
+                    if(resp instanceof RemoteInvocationResponse && resp.isSuccess()) {
+                        RemoteInvocationResponse invocResp = (RemoteInvocationResponse) resp;
+                        Object invoker = ClassUtils.readObject(invocResp.getInvokerData());
+                        Object ret = ClassUtils.readObject(invocResp.getReturnValueData());
+                        if(invoker instanceof List) {
+                            setListMetaData((List)invoker);
+                            invocResp.setInvokerData(ClassUtils.toBytesArray(invoker));
+                        }
+                        if(ret instanceof List) {
+                            setListMetaData((List) ret);
+                            invocResp.setReturnValueData(ClassUtils.toBytesArray(ret));
+                        }
+                    }
+                    return resp;
                 }
-                return resp;
+                return null;
             }
         });
         
         Context context = Mockito.mock(Context.class);
         Mockito.when(context.getPackageName()).thenReturn(AppName);
         
-        HostMonitor monitor = Mockito.mock(HostMonitor.class);
-        Mockito.when(monitor.withHostStatusChangeListener(Mockito.any(HostStatusChangeListener.class))).thenCallRealMethod();
+        ByteProvider apk = new ByteProvider() {
+            @Override
+            public byte[] provide() {
+                return null;
+            }
+        };
         
+        HostMonitor monitor = Mockito.mock(HostMonitor.class);
+        Mockito.when(monitor.withHostStatusChangeListener(Matchers.any(HostStatusChangeListener.class))).thenCallRealMethod();
+
         Engine.localInit(context, monitor);
-        engine = new Engine(schedular, client);
+        engine = new Engine(context, client, schedular, apk);
         
         add = List.class.getMethod("add", int.class);
         remove = List.class.getMethod("remove", int.class);
         multiply = List.class.getMethod("multiply", Integer.class);
+        sum = TestSum.class.getMethod("sum", int.class, int.class);
+        sumStatic = TestSum.class.getMethod("sumStatic", int.class, int.class);
         
         l0 = new ListNode(0);
         l1 = new ListNode(1);
@@ -248,6 +291,7 @@ public class EngineTest {
 
     @Test
     public void testAdd() {
+        assertTrue(engine.shouldMigrate(add, l, 100));
         engine.invokeRemotely(add, l, 100);
         assertFalse(l.isNew());
         assertFalse(l.isOnServer());
@@ -277,6 +321,7 @@ public class EngineTest {
     
     @Test
     public void testRemove() {
+        assertTrue(engine.shouldMigrate(remove, l, 0));
         engine.invokeRemotely(remove, l, 0);
         assertFalse(l.isNew());
         assertFalse(l.isOnServer());
@@ -302,6 +347,7 @@ public class EngineTest {
     
     @Test
     public void testMultiply() {
+        assertTrue(engine.shouldMigrate(multiply, l, l0));
         List list = (List) engine.invokeRemotely(multiply, l, 10);
         assertFalse(l.isNew());
         assertFalse(l.isOnServer());
@@ -349,8 +395,24 @@ public class EngineTest {
         assertNull(n3.next);
     }
     
+    @Test
+    public void testSum() {
+        TestSum obj = new TestSum();
+        assertTrue(engine.shouldMigrate(sum, obj, 1, 2));
+        int res = (Integer) engine.invokeRemotely(sum, obj, 1, 2);
+        assertEquals(3, res);
+    }
+    
+    @Test
+    public void testStaticSum() {
+        assertTrue(engine.shouldMigrate(sumStatic, null, 1, 2));
+        int res = (Integer) engine.invokeRemotely(sumStatic, null, 1, 2);
+        assertEquals(3, res);
+    }
+    
     @Test(expected = NullPointerException.class)
     public void testError() throws Throwable {
+        assertTrue(engine.shouldMigrate(multiply, l, new Object[]{null}));
         try {
             engine.invokeRemotely(multiply, l, new Object[]{null});
         } catch(RemoteExecutionFailedException e) {

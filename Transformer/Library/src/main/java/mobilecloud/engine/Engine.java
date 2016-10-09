@@ -1,53 +1,61 @@
 package mobilecloud.engine;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.lang.reflect.Method;
 
 import android.content.Context;
-import lombok.NonNull;
 import mobilecloud.api.RemoteInvocationRequest;
 import mobilecloud.api.RemoteInvocationResponse;
+import mobilecloud.api.Request;
 import mobilecloud.api.Response;
+import mobilecloud.api.UploadApplicationExecutableRequest;
 import mobilecloud.client.Client;
 import mobilecloud.engine.host.Host;
 import mobilecloud.engine.host.monitor.HostMonitor;
 import mobilecloud.engine.host.monitor.HostStatusChangeListener;
 import mobilecloud.engine.schedular.Schedular;
+import mobilecloud.server.NoApplicationExecutableException;
+import mobilecloud.utils.ByteProvider;
+import mobilecloud.utils.ClassUtils;
 
 /**
  * The cloud compute engine
  */
 public class Engine {
-    
+
     // Singleton instance
     private static Engine engine;
-    
+
     // A flag to indicate if current environment is on cloud or not
     private static boolean onCloud;
-    
+
     // The Android application context
     private static Context context;
-    
+
     /**
-     * Indicate that current environment is on cloud. Cloud environment should invoke 
-     * this method before first execution.
+     * Indicate that current environment is on cloud. Cloud environment should
+     * invoke this method before first execution.
      */
     public static void cloudInit() {
         onCloud = true;
     }
-    
+
     /**
      * Initialize local environment with Android Context and a HostMonitor
-     * @param ctxt the Android application context
-     * @param monitor the Monitor which is used to monitor server hosts
+     * 
+     * @param ctxt
+     *            the Android application context
+     * @param monitor
+     *            the Monitor which is used to monitor server hosts
      */
-    public static void localInit(@NonNull Context ctxt, @NonNull HostMonitor monitor) {
+    public static void localInit(Context ctxt, HostMonitor monitor) {
         onCloud = false;
         context = ctxt;
         monitor.withHostStatusChangeListener(new HostStatusChangeListener() {
             @Override
             public void onHostStatusChange(Host host, boolean isAlive) {
-                if(isAlive) {
+                if (isAlive) {
                     Schedular.getInstance().addHost(host);
                 } else {
                     Schedular.getInstance().removeHost(host);
@@ -55,15 +63,18 @@ public class Engine {
             }
         }).start();
     }
-    
+
     /**
-     * Initialize local environment with Android Context and the default host monitor
-     * @param ctxt the Android application context
+     * Initialize local environment with Android Context and the default host
+     * monitor
+     * 
+     * @param ctxt
+     *            the Android application context
      */
     public static void localInit(Context ctxt) {
         localInit(ctxt, HostMonitor.getInstance());
     }
-    
+
     /**
      * Test if current environment is on cloud or not
      * 
@@ -72,20 +83,8 @@ public class Engine {
     public static boolean isOnCloud() {
         return onCloud;
     }
-    
-    
-    /**
-     * Get the current applciation name
-     * @return the app name
-     */
-    public static String appName() {
-        if (context == null) {
-            throw new NullPointerException("No context available! Please init engine with available context!");
-        } else {
-            return context.getPackageName();
-        }
-    }
-    
+
+
     /**
      * Indicate current host
      */
@@ -93,36 +92,51 @@ public class Engine {
         public LocalHost() {
             super("localHost", 0);
         }
-    }
-    
-    
 
-    private final Schedular schedular;
+        @Override
+        public boolean equals(Object o) {
+            if (o == null || o.getClass() != LocalHost.class) {
+                return false;
+            } else {
+                LocalHost that = (LocalHost) o;
+                Host me = new Host(ip, port);
+                Host he = new Host(that.ip, that.port);
+                return me.equals(he);
+            }
+        }
+    }
+
+    private final Context ctx;
     private final Client client;
-    
-    public Engine(@NonNull Schedular schedular, @NonNull Client client) {
+    private final Schedular schedular;
+    private final ByteProvider apkProvider;
+
+    public Engine(Context context, Client client, Schedular schedular, ByteProvider apkProvider) {
+        this.ctx = context;
         this.schedular = schedular;
         this.client = client;
-        
+        this.apkProvider = apkProvider;
+
         // Add local host to this schedular, so that schedular can schedule
         // local host to invoke a method.
         this.schedular.addHost(new LocalHost());
     }
-    
+
     /**
      * Determine if an invocation should be migrated to the cloud
+     * 
      * @return true if should migrate
      */
     public boolean shouldMigrate(Method method, Object invoker, Object... args) {
-        if(isOnCloud() || !schedular.haveAvailable()) {
+        if (isOnCloud() || !schedular.haveAvailable()) {
             return false;
         }
-        for(Object arg: args) {
-            if(!(arg instanceof Serializable)) {
+        for (Object arg : args) {
+            if (arg != null && !(arg instanceof Serializable)) {
                 return false;
             }
         }
-        if(!(invoker instanceof Serializable)) {
+        if (invoker != null && !(invoker instanceof Serializable)) {
             return false;
         }
         if (schedular.trySchedule() instanceof LocalHost) {
@@ -135,9 +149,20 @@ public class Engine {
     }
     
     /**
+     * Get the current applciation name
+     * 
+     * @return the app name
+     */
+    public String appName() {
+        return ctx.getPackageName();
+    }
+
+    /**
      * Invoke this method on cloud
+     * 
      * @return the result of this execution
-     * @throws Exception if execution fails
+     * @throws Exception
+     *             if execution fails
      */
     public Object invokeRemotely(Method method, Object invoker, Object... args) {
         // Check available hosts
@@ -145,9 +170,6 @@ public class Engine {
         if (host == null) {
             throw new IllegalStateException("No host available!");
         }
-
-        // Build a request
-        RemoteInvocationRequest request = buildInvocationRequest(host.ip, host.port, method, invoker, args);
 
         // Record object meta data
         ObjectMigrator migrator = new ObjectMigrator();
@@ -157,16 +179,20 @@ public class Engine {
         }
 
         try {
+            // Build a request
+            RemoteInvocationRequest request = buildInvocationRequest(host.ip, host.port, method, invoker, args);
+
             // Send the request
             Response resp = client.request(request);
 
-            // Synchronize objects firstly
-            if (resp instanceof RemoteInvocationResponse) {
-                RemoteInvocationResponse invocResp = (RemoteInvocationResponse) resp;
-                migrator.sync(invocResp.getInvoker());
-                for (Object arg : invocResp.getArgs()) {
-                    migrator.sync(arg);
-                }
+            // If server does not have executable files, send it to server
+            if (!resp.isSuccess() && (resp.getThrowable() instanceof NoApplicationExecutableException)) {
+
+                // Upload apk file
+                uploadAPK(host);
+
+                // Retry this request
+                resp = client.request(request);
             }
 
             // If execution fails, throw an exception
@@ -178,47 +204,66 @@ public class Engine {
                 }
             }
 
+            // Synchronize objects
+            if (resp instanceof RemoteInvocationResponse) {
+                RemoteInvocationResponse invocResp = (RemoteInvocationResponse) resp;
+                migrator.sync(ClassUtils.readObject(invocResp.getInvokerData()));
+                for (Object arg : (Object[]) ClassUtils.readObject(invocResp.getArgsData())) {
+                    migrator.sync(arg);
+                }
+            }
+
             // Sync return value and return it
             RemoteInvocationResponse invocResp = (RemoteInvocationResponse) resp;
-            return migrator.sync(invocResp.getReturnValue());
+            return migrator.sync(ClassUtils.readObject(invocResp.getReturnValueData()));
         } catch (Throwable t) {
-            throw new RemoteExecutionFailedException("Caused by: " + t).withReaseon(t);
+            throw new RemoteExecutionFailedException("Remote execution fails!", t);
         } finally {
             // In case of exception, put back objects
             migrator.joinObjects();
         }
     }
-    
+
     // Construct a remote invocation request
     private RemoteInvocationRequest buildInvocationRequest(String ip, int port, Method method, Object invoker,
-            Object[] args) {
+            Object[] args) throws IOException {
         RemoteInvocationRequest request = new RemoteInvocationRequest();
         request.setApplicationId(appName()).setClazzName(method.getDeclaringClass().getName())
-                .setMethodName(method.getName()).setInvoker((Serializable)invoker).setIp(ip).setPort(port);
+                .setMethodName(method.getName()).setInvokerData(ClassUtils.toBytesArray(invoker))
+                .setArgsData(ClassUtils.toBytesArray(args)).setIp(ip).setPort(port);
         Class<?>[] params = method.getParameterTypes();
         String[] argTypes = new String[params.length];
-        Serializable[] arguments = new Serializable[params.length];
         for (int i = 0; i < params.length; i++) {
             argTypes[i] = params[i].getName();
-            arguments[i] = (Serializable) args[i];
         }
-        request.setArgTypesName(argTypes).setArgs(arguments);
+        request.setArgTypesName(argTypes);
         return request;
     }
     
+    //Upload apk file to a host
+    private void uploadAPK(Host host) throws Throwable {
+        Request req = new UploadApplicationExecutableRequest().setApplicationId(appName())
+                .setExecutable(apkProvider.provide()).setIp(host.ip).setPort(host.port);
+        Response resp = client.request(req);
+        if (!resp.isSuccess()) {
+            throw resp.getThrowable();
+        }
+    }
+
     /**
      * Get the singleton instance of Engine
+     * 
      * @return The engine instance
      */
     public static Engine getInstance() {
-        if(engine == null) {
-            synchronized(Engine.class) {
-                if(engine == null) {
-                    engine = new Engine(Schedular.getInstance(), Client.getInstance());
+        if (engine == null) {
+            synchronized (Engine.class) {
+                if (engine == null) {
+                    engine = new Engine(context, Client.getInstance(), Schedular.getInstance(), new APKByteProvider(context));
                 }
             }
         }
         return engine;
     }
-    
+
 }

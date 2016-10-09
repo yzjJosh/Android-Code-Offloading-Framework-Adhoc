@@ -1,17 +1,35 @@
 package mobilecloud.api;
 
-import java.io.Serializable;
-
-import lombok.Getter;
-import lombok.Setter;
-import lombok.experimental.Accessors;
-
-@Accessors(chain = true)
-@Getter
-@Setter
 public class RemoteInvocationResponse extends Response {
     private static final long serialVersionUID = 1L;
-    private Serializable returnValue;
-    private Serializable invoker;
-    private Serializable[] args;
+    private byte[] returnValueData;
+    private byte[] invokerData;
+    private byte[] argsData;
+
+    public byte[] getReturnValueData() {
+        return returnValueData;
+    }
+
+    public RemoteInvocationResponse setReturnValueData(byte[] returnValueData) {
+        this.returnValueData = returnValueData;
+        return this;
+    }
+
+    public byte[] getInvokerData() {
+        return invokerData;
+    }
+
+    public RemoteInvocationResponse setInvokerData(byte[] invokerData) {
+        this.invokerData = invokerData;
+        return this;
+    }
+
+    public byte[] getArgsData() {
+        return argsData;
+    }
+
+    public RemoteInvocationResponse setArgsData(byte[] argsData) {
+        this.argsData = argsData;
+        return this;
+    }
 }

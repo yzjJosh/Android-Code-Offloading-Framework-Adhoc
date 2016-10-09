@@ -2,7 +2,6 @@ package mobilecloud.server.handler.upload;
 
 import java.io.FileOutputStream;
 
-import lombok.NonNull;
 import mobilecloud.api.Request;
 import mobilecloud.api.Response;
 import mobilecloud.api.UploadApplicationExecutableRequest;
@@ -17,10 +16,12 @@ import mobilecloud.utils.FileUtils;
  */
 public class UploadApplicationExecutableHandler implements Handler {
     
-    private Server server;
+    private final Server server;
+    private final APKLoader apkLoader;
     
-    public UploadApplicationExecutableHandler(@NonNull Server server) {
+    public UploadApplicationExecutableHandler(Server server, APKLoader apkLoader) {
         this.server = server;
+        this.apkLoader = apkLoader;
     }
 
     @Override
@@ -32,8 +33,8 @@ public class UploadApplicationExecutableHandler implements Handler {
         UploadApplicationExecutableResponse resp = new UploadApplicationExecutableResponse();
         FileOutputStream fileOuputStream = null;
         try {
-            FileUtils.createDirIfDoesNotExist(APKLoader.getAppDirectory(upReq.getApplicationId()));
-            fileOuputStream = new FileOutputStream(APKLoader.getExecutableLocation(upReq.getApplicationId()));
+            FileUtils.createDirIfDoesNotExist(apkLoader.getAppDirectory(upReq.getApplicationId()));
+            fileOuputStream = new FileOutputStream(apkLoader.getExecutableLocation(upReq.getApplicationId()));
             fileOuputStream.write(upReq.getExecutable());
         } finally {
             if (fileOuputStream != null) {
@@ -41,7 +42,7 @@ public class UploadApplicationExecutableHandler implements Handler {
             }
         }
         try {
-            ClassLoader cl = new APKLoader().loadAPK(upReq.getApplicationId());
+            ClassLoader cl = apkLoader.loadAPK(upReq.getApplicationId());
             server.registerClassLoader(upReq.getApplicationId(), cl);
             return resp.setSuccess(true);
         } catch (Exception e) {

@@ -11,7 +11,7 @@ import org.junit.Test;
 
 import mobilecloud.engine.ObjectMigrator;
 import mobilecloud.lib.Remotable;
-import mobilecloud.test.Utils;
+import mobilecloud.utils.ClassUtils;
 
 public class ObjectMigratorTest {
     
@@ -175,7 +175,7 @@ public class ObjectMigratorTest {
     }
     
     private Object sendViaNetWork(Object origin) throws IOException, ClassNotFoundException {
-        ObjectInputStream is = new ObjectInputStream(Utils.toInputStream(origin));
+        ObjectInputStream is = new ObjectInputStream(ClassUtils.toInputStream(origin));
         return is.readObject();
     }
     

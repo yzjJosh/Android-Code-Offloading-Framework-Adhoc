@@ -16,7 +16,7 @@ import mobilecloud.api.Request;
 import mobilecloud.api.Response;
 import mobilecloud.client.Client;
 import mobilecloud.client.SocketBuilder;
-import mobilecloud.test.Utils;
+import mobilecloud.utils.ClassUtils;
 
 public class ClientTest {
     
@@ -45,7 +45,7 @@ public class ClientTest {
     public void testRequestSuccess() throws Exception {
         Request req = new TestRequest().setIp("192.168.0.1").setPort(80);
         Response resp = new TestResponse().setSuccess(true);
-        InputStream is = Utils.toInputStream(resp);
+        InputStream is = ClassUtils.toInputStream(resp);
         OutputStream os = new ByteArrayOutputStream();
         Mockito.when(socket.getInputStream()).thenReturn(is);
         Mockito.when(socket.getOutputStream()).thenReturn(os);
@@ -58,7 +58,7 @@ public class ClientTest {
     public void testRequestFails() throws Exception {
         Request req = new TestRequest().setIp("192.168.0.1").setPort(80);
         Response resp = new TestResponse().setSuccess(false).setThrowable(new NullPointerException());
-        InputStream is = Utils.toInputStream(resp);
+        InputStream is = ClassUtils.toInputStream(resp);
         OutputStream os = new ByteArrayOutputStream();
         Mockito.when(socket.getInputStream()).thenReturn(is);
         Mockito.when(socket.getOutputStream()).thenReturn(os);

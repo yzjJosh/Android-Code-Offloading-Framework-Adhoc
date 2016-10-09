@@ -1,4 +1,4 @@
-package mobilecloud.server.handler.invocation;
+package mobilecloud.server;
 
 /**
  * Indicate that we cannot find a legal application executable

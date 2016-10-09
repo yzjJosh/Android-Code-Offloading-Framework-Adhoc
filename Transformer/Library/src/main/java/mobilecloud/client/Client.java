@@ -4,7 +4,6 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 
-import lombok.NonNull;
 import mobilecloud.api.Request;
 import mobilecloud.api.Response;
 
@@ -18,7 +17,7 @@ public class Client {
     
     private final SocketBuilder builder;
     
-    public Client(@NonNull SocketBuilder builder) {
+    public Client(SocketBuilder builder) {
         this.builder = builder;
     }
     
@@ -28,13 +27,13 @@ public class Client {
      * @return the response
      * @throws Exception if any problem occurs during the request
      */
-    public Response request(@NonNull Request request) throws Exception {
+    public Response request(Request request) throws Exception {
         Socket socket = builder.build(request.getIp(), request.getPort());
         try {
             ObjectOutputStream os = new ObjectOutputStream(socket.getOutputStream());
+            ObjectInputStream is = new ObjectInputStream(socket.getInputStream());
             os.writeObject(request);
             os.flush();
-            ObjectInputStream is = new ObjectInputStream(socket.getInputStream());
             return (Response) is.readObject();
         } finally {
             socket.close();

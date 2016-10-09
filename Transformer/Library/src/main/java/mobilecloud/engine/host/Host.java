@@ -1,7 +1,5 @@
 package mobilecloud.engine.host;
 
-import lombok.NonNull;
-
 /**
  * A representation of cloud host
  */
@@ -11,7 +9,7 @@ public class Host {
     
     private String str;
 
-    public Host(@NonNull String ip, int port) {
+    public Host(String ip, int port) {
         this.ip = ip;
         this.port = port;
     }
