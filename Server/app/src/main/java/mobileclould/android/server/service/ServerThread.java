@@ -68,9 +68,13 @@ public class ServerThread extends Thread {
                 Request request = (Request) is.readObject();
                 Log.d(TAG, "Got request type: " + request.getClass().getSimpleName());
                 Response resp = Server.getInstance().serve(request);
-                Log.d(TAG, "Complete serve request " + request.getClass().getSimpleName() +
-                        ", status is " + (resp.isSuccess() ? "success" : "failed") +
-                        ", response type is " + resp.getClass().getSimpleName());
+                if(resp.isSuccess()) {
+                    Log.d(TAG, "Complete serving request " + request.getClass().getSimpleName() +
+                            ", status is success.");
+                } else {
+                    Log.d(TAG, "Compelte serving request" + request.getClass().getSimpleName() +
+                            ", status is failed, reason is " + resp.getThrowable());
+                }
                 os.writeObject(resp);
                 os.flush();
                 return resp;

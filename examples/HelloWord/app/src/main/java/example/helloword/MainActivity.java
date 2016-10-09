@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
+import android.util.Log;
 import android.widget.TextView;
 
 import mobilecloud.engine.Engine;
@@ -41,6 +42,7 @@ public class MainActivity extends Activity {
         @Override
         protected Integer doInBackground(Integer... params) {
             int res = new RemoteObject().add(params[0], params[1]);
+            Log.e("HelloWorldResult", RemoteObject.helloWorld());
             handler.postDelayed(new Runnable() {
                 @Override
                 public void run() {

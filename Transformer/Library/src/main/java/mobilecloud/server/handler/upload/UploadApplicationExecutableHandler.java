@@ -1,12 +1,15 @@
 package mobilecloud.server.handler.upload;
 
+import java.io.File;
 import java.io.FileOutputStream;
+
+import org.zeroturnaround.zip.ZipUtil;
 
 import mobilecloud.api.Request;
 import mobilecloud.api.Response;
 import mobilecloud.api.UploadApplicationExecutableRequest;
 import mobilecloud.api.UploadApplicationExecutableResponse;
-import mobilecloud.server.APKLoader;
+import mobilecloud.server.ExecutableLoader;
 import mobilecloud.server.Server;
 import mobilecloud.server.handler.Handler;
 import mobilecloud.utils.FileUtils;
@@ -17,11 +20,11 @@ import mobilecloud.utils.FileUtils;
 public class UploadApplicationExecutableHandler implements Handler {
     
     private final Server server;
-    private final APKLoader apkLoader;
+    private final ExecutableLoader executableLoader;
     
-    public UploadApplicationExecutableHandler(Server server, APKLoader apkLoader) {
+    public UploadApplicationExecutableHandler(Server server, ExecutableLoader apkLoader) {
         this.server = server;
-        this.apkLoader = apkLoader;
+        this.executableLoader = apkLoader;
     }
 
     @Override
@@ -31,18 +34,29 @@ public class UploadApplicationExecutableHandler implements Handler {
         }
         UploadApplicationExecutableRequest upReq = (UploadApplicationExecutableRequest) request;
         UploadApplicationExecutableResponse resp = new UploadApplicationExecutableResponse();
+
+        // Write executable file to tmp folder
         FileOutputStream fileOuputStream = null;
         try {
-            FileUtils.createDirIfDoesNotExist(apkLoader.getAppDirectory(upReq.getApplicationId()));
-            fileOuputStream = new FileOutputStream(apkLoader.getExecutableLocation(upReq.getApplicationId()));
+            FileUtils.createDirIfDoesNotExist(executableLoader.getTmpDirectory(upReq.getApplicationId()));
+            fileOuputStream = new FileOutputStream(
+                    executableLoader.getTmpExecutablePackLocation(upReq.getApplicationId()));
             fileOuputStream.write(upReq.getExecutable());
         } finally {
             if (fileOuputStream != null) {
                 fileOuputStream.close();
             }
         }
+
+        // unzip the executables
+        ZipUtil.unpack(new File(executableLoader.getTmpExecutablePackLocation(upReq.getApplicationId())),
+                new File(executableLoader.getExecutableDirectory(upReq.getApplicationId())));
+
+        // Remove tmp file
+        FileUtils.deleteFolder(executableLoader.getTmpDirectory(upReq.getApplicationId()));
+        
         try {
-            ClassLoader cl = apkLoader.loadAPK(upReq.getApplicationId());
+            ClassLoader cl = executableLoader.loadExecutable(upReq.getApplicationId());
             server.registerClassLoader(upReq.getApplicationId(), cl);
             return resp.setSuccess(true);
         } catch (Exception e) {

@@ -15,7 +15,7 @@ import mobilecloud.api.RemoteInvocationRequest;
 import mobilecloud.api.RemoteInvocationResponse;
 import mobilecloud.api.Request;
 import mobilecloud.api.Response;
-import mobilecloud.server.APKLoader;
+import mobilecloud.server.ExecutableLoader;
 import mobilecloud.server.IllegalRequestException;
 import mobilecloud.server.InternalServerError;
 import mobilecloud.server.Server;
@@ -51,7 +51,7 @@ public class ServerTest {
     
     @Before
     public void setUp() throws IOException {
-        server = new Server(Mockito.mock(APKLoader.class));
+        server = new Server(Mockito.mock(ExecutableLoader.class));
         server.registerClassLoader("0", ClassLoader.getSystemClassLoader());
         f = new Foo();
         req = new RemoteInvocationRequest().setApplicationId("0").setInvokerData(ClassUtils.toBytesArray(f))

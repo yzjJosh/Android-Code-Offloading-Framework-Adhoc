@@ -12,7 +12,7 @@ import org.mockito.Mockito;
 import mobilecloud.api.RemoteInvocationRequest;
 import mobilecloud.api.RemoteInvocationResponse;
 import mobilecloud.api.Response;
-import mobilecloud.server.APKLoader;
+import mobilecloud.server.ExecutableLoader;
 import mobilecloud.server.NoApplicationExecutableException;
 import mobilecloud.server.Server;
 import mobilecloud.server.handler.invocation.RemoteInvocationHandler;
@@ -53,7 +53,7 @@ public class RemoteInvocationHandlerTest {
     
     @Before
     public void setUp() throws IOException {
-        server = new Server(Mockito.mock(APKLoader.class));
+        server = new Server(Mockito.mock(ExecutableLoader.class));
         server.registerClassLoader("0", ClassLoader.getSystemClassLoader());
         f = new Foo();
         req = new RemoteInvocationRequest().setApplicationId("0").setInvokerData(ClassUtils.toBytesArray(f))

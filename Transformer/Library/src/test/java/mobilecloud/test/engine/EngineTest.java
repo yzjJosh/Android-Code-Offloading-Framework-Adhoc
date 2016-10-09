@@ -29,7 +29,7 @@ import mobilecloud.engine.host.monitor.HostMonitor;
 import mobilecloud.engine.host.monitor.HostStatusChangeListener;
 import mobilecloud.engine.schedular.Schedular;
 import mobilecloud.lib.Remotable;
-import mobilecloud.server.APKLoader;
+import mobilecloud.server.ExecutableLoader;
 import mobilecloud.server.Server;
 import mobilecloud.utils.ByteProvider;
 import mobilecloud.utils.ClassUtils;
@@ -203,7 +203,7 @@ public class EngineTest {
         Mockito.when(schedular.haveAvailable()).thenReturn(true);
         Mockito.when(schedular.availableNum()).thenReturn(1);
         
-        server = new Server(Mockito.mock(APKLoader.class));
+        server = new Server(Mockito.mock(ExecutableLoader.class));
         
         client = Mockito.mock(Client.class);
         Mockito.when(client.request(Matchers.any(Request.class))).thenAnswer(new Answer<Response>() {

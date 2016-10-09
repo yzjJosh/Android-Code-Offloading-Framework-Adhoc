@@ -25,12 +25,12 @@ public class Server {
     private static Context context;
     private static Server instance;
     
-    private final APKLoader apkLoader;
+    private final ExecutableLoader executableLoader;
     private final Map<String, Handler> handlers;
     private final Map<String, ClassLoader> classLoaders;
     
-    public Server(APKLoader apkLoader) {
-        this.apkLoader = apkLoader;
+    public Server(ExecutableLoader apkLoader) {
+        this.executableLoader = apkLoader;
         this.handlers = new ConcurrentHashMap<>();
         this.classLoaders = new ConcurrentHashMap<>();
         this.registerHandler(RemoteInvocationRequest.class.getName(), new RemoteInvocationHandler(this));
@@ -64,13 +64,13 @@ public class Server {
     /**
      * Get a class loader belongs to an application
      * @param applicationId the application id to retrieve
-     * @return the class loader
+     * @return the class loader, or null if cannot find it
      */
     public ClassLoader getClassLoader(String applicationId) {
         ClassLoader cl = classLoaders.get(applicationId);
         if(cl == null) {
             try {
-                cl = apkLoader.loadAPK(applicationId);
+                cl = executableLoader.loadExecutable(applicationId);
                 registerClassLoader(applicationId, cl);
             } catch(Exception e) {
                 e.printStackTrace();
@@ -114,7 +114,7 @@ public class Server {
         if(instance == null) {
             synchronized(Server.class) {
                 if(instance == null) {
-                    instance = new Server(new APKLoader(context));
+                    instance = new Server(new ExecutableLoader(context));
                 }
             }
         }

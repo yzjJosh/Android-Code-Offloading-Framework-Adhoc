@@ -45,5 +45,23 @@ public class FileUtils {
             }
         }
     }
+    
+    /**
+     * Recursively delete a folder
+     * @param folder the folder path
+     */
+    public static void deleteFolder(String folder) {
+        File f = new File(folder);
+        if(!f.exists()) {
+            return;
+        }
+        if(f.isDirectory()) {
+            for(File next: f.listFiles()) {
+                deleteFolder(next.getPath());
+            }
+        } else {
+            f.delete();
+        }
+    }
 
 }

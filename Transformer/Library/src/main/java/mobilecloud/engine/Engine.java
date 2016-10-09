@@ -111,11 +111,11 @@ public class Engine {
     private final Schedular schedular;
     private final ByteProvider apkProvider;
 
-    public Engine(Context context, Client client, Schedular schedular, ByteProvider apkProvider) {
+    public Engine(Context context, Client client, Schedular schedular, ByteProvider executableProvider) {
         this.ctx = context;
         this.schedular = schedular;
         this.client = client;
-        this.apkProvider = apkProvider;
+        this.apkProvider = executableProvider;
 
         // Add local host to this schedular, so that schedular can schedule
         // local host to invoke a method.
@@ -259,7 +259,7 @@ public class Engine {
         if (engine == null) {
             synchronized (Engine.class) {
                 if (engine == null) {
-                    engine = new Engine(context, Client.getInstance(), Schedular.getInstance(), new APKByteProvider(context));
+                    engine = new Engine(context, Client.getInstance(), Schedular.getInstance(), new ExecutableByteProvider(context));
                 }
             }
         }

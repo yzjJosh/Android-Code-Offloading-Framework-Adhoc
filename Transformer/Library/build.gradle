@@ -5,7 +5,7 @@ sourceCompatibility = JavaVersion.VERSION_1_7
 targetCompatibility = JavaVersion.VERSION_1_7
 
 dependencies {
-  //  compile "org.projectlombok:lombok:1.16.10"
+    compile group: 'org.zeroturnaround', name: 'zt-zip', version: '1.9'
     compile group: 'com.google.android', name: 'android', version: '4.1.1.4'
     
     testCompile 'junit:junit:4.12'
