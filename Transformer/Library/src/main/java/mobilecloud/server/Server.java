@@ -3,6 +3,7 @@ package mobilecloud.server;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import android.content.Context;
 import mobilecloud.api.IllegalRequestResponse;
 import mobilecloud.api.InternalServerErrorResponse;
 import mobilecloud.api.MonitorHostRequest;
@@ -20,6 +21,9 @@ import mobilecloud.server.handler.upload.UploadApplicationExecutableHandler;
  * A server object
  */
 public class Server {
+    
+    private static Context context;
+    private static Server instance;
     
     private final APKLoader apkLoader;
     private final Map<String, Handler> handlers;
@@ -94,11 +98,27 @@ public class Server {
     }
     
     /**
-     * Initialize server
+     * Initialize this server
      * @param context server application context
      */
-    public static void init() {
+    public static void init(Context context) {
+        Server.context = context;
         Engine.cloudInit();
+    }
+    
+    /**
+     * Get singleton server instance
+     * @return the server
+     */
+    public static Server getInstance() {
+        if(instance == null) {
+            synchronized(Server.class) {
+                if(instance == null) {
+                    instance = new Server(new APKLoader(context));
+                }
+            }
+        }
+        return instance;
     }
 
 }
