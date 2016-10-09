@@ -52,16 +52,19 @@ public class Engine {
     public static void localInit(Context ctxt, HostMonitor monitor) {
         onCloud = false;
         context = ctxt;
-        monitor.withHostStatusChangeListener(new HostStatusChangeListener() {
-            @Override
-            public void onHostStatusChange(Host host, boolean isAlive) {
-                if (isAlive) {
-                    Schedular.getInstance().addHost(host);
-                } else {
-                    Schedular.getInstance().removeHost(host);
+        if(monitor != null) {
+            //monitor is provided, start the monitor
+            monitor.withHostStatusChangeListener(new HostStatusChangeListener() {
+                @Override
+                public void onHostStatusChange(Host host, boolean isAlive) {
+                    if (isAlive) {
+                        Schedular.getInstance().addHost(host);
+                    } else {
+                        Schedular.getInstance().removeHost(host);
+                    }
                 }
-            }
-        }).start();
+            }).start();
+        }
     }
 
     /**

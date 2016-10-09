@@ -1,0 +1,7 @@
+1. Develop a gradle Plugin which can insert simple code into some methods using bytecode manipulation.
+
+2. Enable the Plugin to insert offloading logics to methods that are annotated.
+
+3. Enable the Plugin to analyze application bytecode and correctly add meta data to offloaded objects.
+
+3. Modify example apps so that they use the gradle Plugin to modify original app logics. User only need to add annotations to target methods.

@@ -1,0 +1,5 @@
+1. Figure out the best way to balance loads. If there are multiple devices that can provide computation, we should make their load as balancing as possible to maximize performance.
+
+2. Figure out the best way to handle failures. Failures including connection lost or crashing. In case of failure the application should work correctly, even though there may be performance penalty.
+
+3. Test the example apps on the load balancing and failure handling perspectives.

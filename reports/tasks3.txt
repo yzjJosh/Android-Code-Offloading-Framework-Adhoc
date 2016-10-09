@@ -1,0 +1,7 @@
+1. Add user interface to the server app to display the server status and events. Enable user to control the server app easily (turn on or turn off easily)
+
+2. Enable Code offloading on more than one devices (2 or 3 servers).
+
+3. Figure out how to dynamically discover servers. When the server is not available at the beginning, but it starts afterwards, our framework should make the new server join its computations.
+
+4. Modify example apps so that they can compute on more than one phones.

@@ -1,0 +1,5 @@
+1. Test the whole system on larger applications. Can be open source project or self developed projects. Measure and compare the performance.
+
+2. Write a paper to conclude this project.
+
+3. Prepare final presentation.

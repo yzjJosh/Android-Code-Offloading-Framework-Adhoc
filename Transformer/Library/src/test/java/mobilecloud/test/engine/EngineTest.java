@@ -244,11 +244,8 @@ public class EngineTest {
                 return null;
             }
         };
-        
-        HostMonitor monitor = Mockito.mock(HostMonitor.class);
-        Mockito.when(monitor.withHostStatusChangeListener(Matchers.any(HostStatusChangeListener.class))).thenCallRealMethod();
 
-        Engine.localInit(context, monitor);
+        Engine.localInit(context, null);
         engine = new Engine(context, client, schedular, apk);
         
         add = List.class.getMethod("add", int.class);
