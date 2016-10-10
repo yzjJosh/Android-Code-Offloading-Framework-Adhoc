@@ -48,7 +48,11 @@ public class TimerKeyLock {
         public synchronized void lock() throws InterruptedException {
             long interval = 0;
             while(!available  || (interval = System.currentTimeMillis() - lastUnlockTime) < minInterval) {
-                wait(minInterval - interval);
+                if(minInterval > 0) {
+                    wait(minInterval - interval);
+                } else {
+                    wait();
+                }
             }
             available = false;
         }
