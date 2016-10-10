@@ -16,6 +16,7 @@ import mobilecloud.engine.host.monitor.HostMonitor;
 import mobilecloud.engine.host.monitor.HostStatusChangeListener;
 import mobilecloud.engine.schedular.Schedular;
 import mobilecloud.server.NoApplicationExecutableException;
+import mobilecloud.server.handler.upload.DuplicateExecutableException;
 import mobilecloud.utils.ByteProvider;
 import mobilecloud.utils.ClassUtils;
 
@@ -112,13 +113,13 @@ public class Engine {
     private final Context ctx;
     private final Client client;
     private final Schedular schedular;
-    private final ByteProvider apkProvider;
+    private final ByteProvider executableProvider;
 
     public Engine(Context context, Client client, Schedular schedular, ByteProvider executableProvider) {
         this.ctx = context;
         this.schedular = schedular;
         this.client = client;
-        this.apkProvider = executableProvider;
+        this.executableProvider = executableProvider;
 
         // Add local host to this schedular, so that schedular can schedule
         // local host to invoke a method.
@@ -131,7 +132,7 @@ public class Engine {
      * @return true if should migrate
      */
     public boolean shouldMigrate(Method method, Object invoker, Object... args) {
-        if (isOnCloud() || !schedular.haveAvailable()) {
+        if (method == null || isOnCloud() || !schedular.haveAvailable()) {
             return false;
         }
         for (Object arg : args) {
@@ -246,9 +247,9 @@ public class Engine {
     //Upload apk file to a host
     private void uploadAPK(Host host) throws Throwable {
         Request req = new UploadApplicationExecutableRequest().setApplicationId(appName())
-                .setExecutable(apkProvider.provide()).setIp(host.ip).setPort(host.port);
+                .setExecutable(executableProvider.provide()).setIp(host.ip).setPort(host.port);
         Response resp = client.request(req);
-        if (!resp.isSuccess()) {
+        if (!resp.isSuccess() && !(resp.getThrowable() instanceof DuplicateExecutableException)) {
             throw resp.getThrowable();
         }
     }

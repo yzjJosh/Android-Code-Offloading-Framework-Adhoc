@@ -6,10 +6,18 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 import org.mockito.Matchers;
 
 import mobilecloud.api.Request;
@@ -66,5 +74,38 @@ public class ClientTest {
         Response res = client.request(req);
         assertFalse(res.isSuccess());
         assertTrue(res.getThrowable() instanceof NullPointerException);
+    }
+    
+    @Test(timeout = 10000)
+    public void testConcurrentRequest() throws Exception {
+        final Request req = new TestRequest().setIp("192.168.0.1").setPort(80);
+        final Response resp = new TestResponse().setSuccess(false).setThrowable(new NullPointerException());
+        Mockito.when(socket.getInputStream()).thenAnswer(new Answer<InputStream>() {
+            @Override
+            public InputStream answer(InvocationOnMock invocation) throws Throwable {
+                return ClassUtils.toInputStream(resp);
+            }
+        });
+        Mockito.when(socket.getOutputStream()).thenAnswer(new Answer<OutputStream>() {
+            @Override
+            public OutputStream answer(InvocationOnMock invocation) throws Throwable {
+                return new ByteArrayOutputStream();
+            }
+        });
+        
+        ExecutorService es = Executors.newCachedThreadPool();
+        List<Future<Response>> futures = new LinkedList<>();
+        for(int i=0; i<10; i++) {
+            futures.add(es.submit(new Callable<Response>() {
+                @Override
+                public Response call() throws Exception {
+                    return client.request(req);
+                }
+            }));
+        }
+        for(Future<Response> f: futures) {
+            assertTrue(f.get() instanceof TestResponse);
+        }
+        es.shutdown();
     }
 }

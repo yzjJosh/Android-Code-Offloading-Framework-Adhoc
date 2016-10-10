@@ -1,61 +1,67 @@
 package example.helloword;
 
 import android.app.Activity;
-import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Handler;
 import android.util.Log;
-import android.widget.TextView;
+
+import java.lang.reflect.Method;
 
 import mobilecloud.engine.Engine;
 import mobilecloud.engine.host.Host;
 import mobilecloud.engine.host.provider.StaticHostProvider;
-import mobilecloud.utils.NetUtils;
+import mobilecloud.lib.Remote;
 
 
 public class MainActivity extends Activity {
 
-    private Handler handler = new Handler();
-    private TextView textView;
+    private static final String TAG = MainActivity.class.getSimpleName();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        textView = (TextView) findViewById(R.id.textView);
-
+        // Initialize engine
         Engine.localInit(this);
 
-        new Thread() {
-            @Override
-            public void run() {
-                StaticHostProvider.addHost(new Host(NetUtils.getLocalIpAddress(), 50382));
-            }
-        }.start();
+        // Set server ip and port
+        StaticHostProvider.addHost(new Host("192.168.0.11", 50382));
 
-        new RemoteTask().execute(1, 2);
+        new HelloWorldThread().start();
     }
 
-    private class RemoteTask extends AsyncTask<Integer, Void, Integer> {
+    private static class HelloWorldThread extends Thread {
 
         @Override
-        protected Integer doInBackground(Integer... params) {
-            int res = new RemoteObject().add(params[0], params[1]);
-            Log.e("HelloWorldResult", RemoteObject.helloWorld());
-            handler.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    new RemoteTask().execute(1, 2);
+        public void run() {
+            try {
+                while (true) {
+                    long start = System.currentTimeMillis();
+                    String res = helloWorld();
+                    long end = System.currentTimeMillis();
+                    Log.e(TAG, "helloWord() result is " + res + ", spending time is " + (end - start));
+                    Thread.sleep(5000);
                 }
-            }, 5000);
-            return res;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
+    }
 
-        @Override
-        protected void onPostExecute(Integer result) {
-            textView.setText(String.valueOf(result));
+
+    @Remote
+    public static String helloWorld() {
+        try {
+            Method method = MainActivity.class.getMethod("helloWorld");
+            if(Engine.getInstance().shouldMigrate(method, null)) {
+                Log.e(TAG, "Running helloWorld remotely ...");
+                return (String) Engine.getInstance().invokeRemotely(method, null);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
+        Log.e(TAG, "Running helloWorld locally ...");
+        return "Hello World";
     }
 
 }

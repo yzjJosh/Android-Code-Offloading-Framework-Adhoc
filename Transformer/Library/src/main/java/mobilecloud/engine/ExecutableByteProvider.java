@@ -34,7 +34,7 @@ public class ExecutableByteProvider implements ByteProvider{
      * provide executable data
      */
     @Override
-    public byte[] provide() {
+    public synchronized byte[] provide() {
         try {
             if(!new File(getExecutableFilePath()).exists()) {
                 FileUtils.createDirIfDoesNotExist(getTempOutputDir());

@@ -6,6 +6,7 @@ import java.net.Socket;
 
 import mobilecloud.api.Request;
 import mobilecloud.api.Response;
+import mobilecloud.engine.host.Host;
 
 /**
  * A client which interacts with server
@@ -16,9 +17,11 @@ public class Client {
     private static Client instance;
     
     private final SocketBuilder builder;
+    private final TimerKeyLock lock;
     
     public Client(SocketBuilder builder) {
         this.builder = builder;
+        this.lock = new TimerKeyLock(Config.minRequestInterval);
     }
     
     /**
@@ -28,7 +31,14 @@ public class Client {
      * @throws Exception if any problem occurs during the request
      */
     public Response request(Request request) throws Exception {
-        Socket socket = builder.build(request.getIp(), request.getPort());
+        Host host = new Host(request.getIp(), request.getPort());
+        lock.lock(host);
+        Socket socket = null;
+        try {
+            socket = builder.build(request.getIp(), request.getPort());
+        } finally {
+            lock.unlock(host);
+        }
         try {
             ObjectOutputStream os = new ObjectOutputStream(socket.getOutputStream());
             ObjectInputStream is = new ObjectInputStream(socket.getInputStream());

@@ -25,8 +25,6 @@ import mobilecloud.client.Client;
 import mobilecloud.engine.Engine;
 import mobilecloud.engine.RemoteExecutionFailedException;
 import mobilecloud.engine.host.Host;
-import mobilecloud.engine.host.monitor.HostMonitor;
-import mobilecloud.engine.host.monitor.HostStatusChangeListener;
 import mobilecloud.engine.schedular.Schedular;
 import mobilecloud.lib.Remotable;
 import mobilecloud.server.ExecutableLoader;
