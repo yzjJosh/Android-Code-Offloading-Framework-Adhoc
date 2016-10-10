@@ -4,6 +4,8 @@ import static org.junit.Assert.*;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.Arrays;
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -23,6 +25,7 @@ public class RemoteInvocationHandlerTest {
     private Server server;
     private RemoteInvocationRequest req;
     private Foo f;
+    private Object[] args = new Object[]{"1", 5};
     
     
     public static class Foo implements Serializable {
@@ -58,8 +61,12 @@ public class RemoteInvocationHandlerTest {
         f = new Foo();
         req = new RemoteInvocationRequest().setApplicationId("0").setInvokerData(ClassUtils.toBytesArray(f))
                 .setClazzName(Foo.class.getName()).setMethodName("sum")
-                .setArgTypesName(new String[] { String.class.getName(), int.class.getName() })
-                .setArgsData(ClassUtils.toBytesArray(new Serializable[] { "1", 5 }));
+                .setArgTypesName(new String[] { String.class.getName(), int.class.getName() }).setArgsData(Arrays
+                        .asList(new byte[][] { ClassUtils.toBytesArray(args[0]), ClassUtils.toBytesArray(args[1]) }));
+    }
+    
+    private Object decodeOrDefault(byte[] array, Object def) throws SecurityException, ClassNotFoundException, IOException {
+        return array == null? def: ClassUtils.readObject(array);
     }
     
     @Test
@@ -84,7 +91,8 @@ public class RemoteInvocationHandlerTest {
     
     @Test
     public void testHandleWithInvokeTargetException() throws Exception {
-        req.setArgsData(ClassUtils.toBytesArray(new Serializable[]{"a", 1}));
+        Object[] args = new Object[]{"a", 1};
+        req.setArgsData(Arrays.asList(new byte[][] { ClassUtils.toBytesArray(args[0]), ClassUtils.toBytesArray(args[1]) }));
         RemoteInvocationHandler handler = new RemoteInvocationHandler(server);
         Response resp = handler.handle(req);
         assertTrue(resp instanceof RemoteInvocationResponse);
@@ -94,7 +102,8 @@ public class RemoteInvocationHandlerTest {
     
     @Test
     public void testHandleWithWrongArgumentType() throws Exception {
-        req.setArgsData(ClassUtils.toBytesArray(new Serializable[]{1, 2}));
+        Object[] args = new Object[]{1, 2};
+        req.setArgsData(Arrays.asList(new byte[][] { ClassUtils.toBytesArray(args[0]), ClassUtils.toBytesArray(args[1]) }));
         RemoteInvocationHandler handler = new RemoteInvocationHandler(server);
         Response resp = handler.handle(req);
         assertTrue(resp instanceof RemoteInvocationResponse);
@@ -109,29 +118,30 @@ public class RemoteInvocationHandlerTest {
         assertTrue(resp instanceof RemoteInvocationResponse);
         assertTrue(resp.isSuccess());
         RemoteInvocationResponse res = (RemoteInvocationResponse) resp;
-        Object[] args = (Object[]) ClassUtils.readObject(res.getArgsData());
-        Object invoker = ClassUtils.readObject(res.getInvokerData());
+        List<byte[]> argsData = res.getArgsData();
+        Object invoker = decodeOrDefault(res.getInvokerData(), f);
         Object ret = ClassUtils.readObject(res.getReturnValueData());
-        assertEquals(args[0], "1");
-        assertEquals(args[1], 5);
+        assertEquals(decodeOrDefault(argsData.get(0), args[0]), "1");
+        assertEquals(decodeOrDefault(argsData.get(1), args[1]), 5);
         assertEquals(invoker, f);
         assertEquals(ret, 6);
     }
     
     @Test
     public void testHandlePrivateMethod() throws Exception {
+        Object[] args = new Object[]{1, 2};
         req.setArgTypesName(new String[] { int.class.getName(), int.class.getName() })
-                .setArgsData(ClassUtils.toBytesArray(new Serializable[] { 1, 2 }));
+                .setArgsData(Arrays.asList(new byte[][] { ClassUtils.toBytesArray(args[0]), ClassUtils.toBytesArray(args[1]) }));
         RemoteInvocationHandler handler = new RemoteInvocationHandler(server);
         Response resp = handler.handle(req);
         assertTrue(resp instanceof RemoteInvocationResponse);
         assertTrue(resp.isSuccess());
         RemoteInvocationResponse res = (RemoteInvocationResponse) resp;
-        Object[] args = (Object[]) ClassUtils.readObject(res.getArgsData());
-        Object invoker = ClassUtils.readObject(res.getInvokerData());
+        List<byte[]> argsData = res.getArgsData();
+        Object invoker = decodeOrDefault(res.getInvokerData(), f);
         Object ret = ClassUtils.readObject(res.getReturnValueData());
-        assertEquals(args[0], 1);
-        assertEquals(args[1], 2);
+        assertEquals(decodeOrDefault(argsData.get(0), args[0]), 1);
+        assertEquals(decodeOrDefault(argsData.get(1), args[1]), 2);
         assertEquals(invoker, f);
         assertEquals(ret, 3);
     }

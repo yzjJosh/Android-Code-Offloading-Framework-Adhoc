@@ -18,10 +18,12 @@ public class Client {
     
     private final SocketBuilder builder;
     private final TimerKeyLock lock;
+    private final int conenctionTimeOut;
     
-    public Client(SocketBuilder builder) {
+    public Client(SocketBuilder builder, int minRequestInterval, int conenctionTimeOut) {
         this.builder = builder;
-        this.lock = new TimerKeyLock(Config.minRequestInterval);
+        this.lock = new TimerKeyLock(minRequestInterval);
+        this.conenctionTimeOut = conenctionTimeOut;
     }
     
     /**
@@ -35,7 +37,7 @@ public class Client {
         lock.lock(host);
         Socket socket = null;
         try {
-            socket = builder.build(request.getIp(), request.getPort());
+            socket = builder.build(request.getIp(), request.getPort(), conenctionTimeOut);
         } finally {
             lock.unlock(host);
         }
@@ -58,7 +60,7 @@ public class Client {
         if(instance == null) {
             synchronized(Client.class) {
                 if(instance == null) {
-                    instance = new Client(new DefaultSocketBuilder());
+                    instance = new Client(new DefaultSocketBuilder(), Config.MIN_REQUEST_INTERVAL, Config.CONNECTION_TIME_OUT);
                 }
             }
         }

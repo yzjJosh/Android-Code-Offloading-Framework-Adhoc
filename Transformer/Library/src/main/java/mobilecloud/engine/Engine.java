@@ -3,6 +3,8 @@ package mobilecloud.engine;
 import java.io.IOException;
 import java.io.Serializable;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
 
 import android.content.Context;
 import mobilecloud.api.RemoteInvocationRequest;
@@ -209,16 +211,21 @@ public class Engine {
             }
 
             // Synchronize objects
-            if (resp instanceof RemoteInvocationResponse) {
-                RemoteInvocationResponse invocResp = (RemoteInvocationResponse) resp;
-                migrator.sync(ClassUtils.readObject(invocResp.getInvokerData()));
-                for (Object arg : (Object[]) ClassUtils.readObject(invocResp.getArgsData())) {
-                    migrator.sync(arg);
-                }
+            RemoteInvocationResponse invocResp = (RemoteInvocationResponse) resp;
+            byte[] invokerData = invocResp.getInvokerData();
+            List<byte[]> argsData = invocResp.getArgsData();
+
+            // If the data has been changed, sync them
+            if (invokerData != null) {
+                migrator.sync(ClassUtils.readObject(invokerData));
             }
 
-            // Sync return value and return it
-            RemoteInvocationResponse invocResp = (RemoteInvocationResponse) resp;
+            for (byte[] argData : argsData) {
+                if (argData != null) {
+                    migrator.sync(ClassUtils.readObject(argData));
+                }
+            }
+            
             return migrator.sync(ClassUtils.readObject(invocResp.getReturnValueData()));
         } catch (Throwable t) {
             throw new RemoteExecutionFailedException("Remote execution fails!", t);
@@ -234,13 +241,15 @@ public class Engine {
         RemoteInvocationRequest request = new RemoteInvocationRequest();
         request.setApplicationId(appName()).setClazzName(method.getDeclaringClass().getName())
                 .setMethodName(method.getName()).setInvokerData(ClassUtils.toBytesArray(invoker))
-                .setArgsData(ClassUtils.toBytesArray(args)).setIp(ip).setPort(port);
+                .setIp(ip).setPort(port);
         Class<?>[] params = method.getParameterTypes();
+        List<byte[]> argsData = new ArrayList<>(params.length);
         String[] argTypes = new String[params.length];
         for (int i = 0; i < params.length; i++) {
             argTypes[i] = params[i].getName();
+            argsData.add(ClassUtils.toBytesArray(args[i]));
         }
-        request.setArgTypesName(argTypes);
+        request.setArgTypesName(argTypes).setArgsData(argsData);
         return request;
     }
     

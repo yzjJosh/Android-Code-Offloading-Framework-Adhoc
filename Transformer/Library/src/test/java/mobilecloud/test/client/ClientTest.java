@@ -44,9 +44,9 @@ public class ClientTest {
         socket = Mockito.mock(Socket.class);
         
         SocketBuilder builder = Mockito.mock(SocketBuilder.class);
-        Mockito.when(builder.build(Matchers.anyString(), Matchers.anyInt())).thenReturn(socket);
+        Mockito.when(builder.build(Matchers.anyString(), Matchers.anyInt(), Matchers.anyInt())).thenReturn(socket);
         
-        client = new Client(builder);
+        client = new Client(builder, 100, 2000);
     }
 
     @Test

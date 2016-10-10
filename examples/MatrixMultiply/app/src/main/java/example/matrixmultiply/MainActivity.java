@@ -22,7 +22,7 @@ public class MainActivity extends AppCompatActivity {
 
         // Set server ip and port
         StaticHostProvider.addHost(new Host("127.0.0.1", 50382));
-        StaticHostProvider.addHost(new Host("192.168.0.17", 50382));
+        StaticHostProvider.addHost(new Host("192.168.0.23", 50382));
 
         new MatMultiplyThread().start();
     }

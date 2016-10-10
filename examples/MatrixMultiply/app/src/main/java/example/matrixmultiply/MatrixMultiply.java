@@ -36,13 +36,13 @@ public class MatrixMultiply {
         List<Future<int[]>> futureList = new LinkedList<>();
         int[][] res = new int[m1][n2];
         for(int i=0; i<m1; i++) {
-            futureList.add(executor.submit(new RowGetter(mat1[i], transMat2)));
+            futureList.add(executor.submit(new RowGetter(res[i], mat1[i], transMat2)));
         }
 
         Iterator<Future<int[]>> it = futureList.iterator();
         for(int i=0; i<m1; i++) {
             try {
-                res[i] = it.next().get();
+                it.next().get();
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -59,10 +59,12 @@ public class MatrixMultiply {
         private boolean isOnServer = Engine.isOnCloud();
         private int id = System.identityHashCode(this);
 
+        private int[] res;
         private int[] row;
         private int[][] cols;
 
-        public RowGetter(int[] row, int[][] cols) {
+        public RowGetter(int[] res, int[] row, int[][] cols) {
+            this.res = res;
             this.row = row;
             this.cols = cols;
         }
@@ -80,7 +82,6 @@ public class MatrixMultiply {
                 e.printStackTrace();
             }
             Log.d(TAG, "Calculating row locally ...");
-            int[] res = new int[cols.length];
             for(int i=0; i<cols.length; i++) {
                 res[i] = multiplyVector(row, cols[i]);
             }

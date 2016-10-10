@@ -2,6 +2,8 @@ package mobilecloud.server.handler.invocation;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.List;
 
 import mobilecloud.api.RemoteInvocationRequest;
 import mobilecloud.api.RemoteInvocationResponse;
@@ -38,24 +40,42 @@ public class RemoteInvocationHandler implements Handler {
                                     + ", please send application executable to server and try it again."));
         }
         try {
-            Class<?> declareClazz = ClassUtils.loadClass(loader, invocReq.getClazzName());
             String[] argTypesName = invocReq.getArgTypesName();
+            List<byte[]> argsData = invocReq.getArgsData();
+            byte[] invokerData = invocReq.getInvokerData();
+            
+            Class<?> declareClazz = ClassUtils.loadClass(loader, invocReq.getClazzName());
             Class<?>[] argTypes = new Class<?>[argTypesName.length];
+            Object[] args = new Object[argTypesName.length];
             for (int i = 0; i < argTypesName.length; i++) {
                 argTypes[i] = ClassUtils.loadClass(loader, argTypesName[i]);
+                args[i] = ClassUtils.readObject(argsData.get(i), loader);
             }
-            Object invoker = ClassUtils.readObject(invocReq.getInvokerData(), loader);
-            Object[] args = (Object[]) ClassUtils.readObject(invocReq.getArgsData(), loader);
+            Object invoker = ClassUtils.readObject(invokerData, loader);
             
             // Invoke the method
             Method method = declareClazz.getDeclaredMethod(invocReq.getMethodName(), argTypes);
             method.setAccessible(true);
             Object ret = method.invoke(invoker, args);
             
-            resp.setArgsData(ClassUtils.toBytesArray(args))
-                .setInvokerData(ClassUtils.toBytesArray(invoker))
-                .setReturnValueData(ClassUtils.toBytesArray(ret))
-                .setSuccess(true);
+            //If invoker or parameters are not changed, we ignore them in response
+            byte[] newInvokerData = ClassUtils.toBytesArray(invoker);
+            if(Arrays.equals(invokerData, newInvokerData)) {
+                invokerData = null;
+            } else {
+                invokerData = newInvokerData;
+            }
+            for(int i=0; i < args.length; i++) {
+                byte[] newArgData = ClassUtils.toBytesArray(args[i]);
+                if(Arrays.equals(argsData.get(i), newArgData)) {
+                    argsData.set(i, null);
+                } else {
+                    argsData.set(i, newArgData);
+                }
+            }
+            
+            resp.setArgsData(argsData).setInvokerData(invokerData).setReturnValueData(ClassUtils.toBytesArray(ret))
+                    .setSuccess(true);
             return resp;
         } catch (InvocationTargetException e) {
             return resp.setSuccess(false).setThrowable(e.getTargetException());

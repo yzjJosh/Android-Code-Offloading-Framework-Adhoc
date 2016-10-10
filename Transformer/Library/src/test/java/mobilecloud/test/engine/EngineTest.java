@@ -208,21 +208,22 @@ public class EngineTest {
             @Override
             public Response answer(InvocationOnMock invocation) throws Throwable {
                 Request req = (Request) invocation.getArguments()[0];
-                if(req instanceof UploadApplicationExecutableRequest) {
+                if (req instanceof UploadApplicationExecutableRequest) {
                     UploadApplicationExecutableRequest up = (UploadApplicationExecutableRequest) req;
                     server.registerClassLoader(up.getApplicationId(), ClassLoader.getSystemClassLoader());
                     return new UploadApplicationExecutableResponse().setSuccess(true);
-                } else if(req instanceof RemoteInvocationRequest) {
+                } else if (req instanceof RemoteInvocationRequest) {
                     Response resp = server.serve(req);
-                    if(resp instanceof RemoteInvocationResponse && resp.isSuccess()) {
+                    if (resp instanceof RemoteInvocationResponse && resp.isSuccess()) {
                         RemoteInvocationResponse invocResp = (RemoteInvocationResponse) resp;
-                        Object invoker = ClassUtils.readObject(invocResp.getInvokerData());
+                        Object invoker = invocResp.getInvokerData() == null ? null
+                                : ClassUtils.readObject(invocResp.getInvokerData());
                         Object ret = ClassUtils.readObject(invocResp.getReturnValueData());
-                        if(invoker instanceof List) {
-                            setListMetaData((List)invoker);
+                        if (invoker instanceof List) {
+                            setListMetaData((List) invoker);
                             invocResp.setInvokerData(ClassUtils.toBytesArray(invoker));
                         }
-                        if(ret instanceof List) {
+                        if (ret instanceof List) {
                             setListMetaData((List) ret);
                             invocResp.setReturnValueData(ClassUtils.toBytesArray(ret));
                         }

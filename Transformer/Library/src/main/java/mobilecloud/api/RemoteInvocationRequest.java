@@ -1,5 +1,7 @@
 package mobilecloud.api;
 
+import java.util.List;
+
 public class RemoteInvocationRequest extends Request {
     private static final long serialVersionUID = 1L;
     private String applicationId;
@@ -7,7 +9,7 @@ public class RemoteInvocationRequest extends Request {
     private String methodName;
     private String[] argTypesName;
     private byte[] invokerData;
-    private byte[] argsData;
+    private List<byte[]> argsData;
 
     public String getApplicationId() {
         return applicationId;
@@ -54,11 +56,11 @@ public class RemoteInvocationRequest extends Request {
         return this;
     }
 
-    public byte[] getArgsData() {
+    public List<byte[]> getArgsData() {
         return argsData;
     }
 
-    public RemoteInvocationRequest setArgsData(byte[] argsData) {
+    public RemoteInvocationRequest setArgsData(List<byte[]> argsData) {
         this.argsData = argsData;
         return this;
     }

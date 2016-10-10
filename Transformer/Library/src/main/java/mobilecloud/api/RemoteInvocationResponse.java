@@ -1,10 +1,12 @@
 package mobilecloud.api;
 
+import java.util.List;
+
 public class RemoteInvocationResponse extends Response {
     private static final long serialVersionUID = 1L;
     private byte[] returnValueData;
     private byte[] invokerData;
-    private byte[] argsData;
+    private List<byte[]> argsData;
 
     public byte[] getReturnValueData() {
         return returnValueData;
@@ -24,11 +26,11 @@ public class RemoteInvocationResponse extends Response {
         return this;
     }
 
-    public byte[] getArgsData() {
+    public List<byte[]> getArgsData() {
         return argsData;
     }
 
-    public RemoteInvocationResponse setArgsData(byte[] argsData) {
+    public RemoteInvocationResponse setArgsData(List<byte[]> argsData) {
         this.argsData = argsData;
         return this;
     }

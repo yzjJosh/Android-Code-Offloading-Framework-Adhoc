@@ -7,6 +7,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import mobilecloud.api.MonitorHostRequest;
+import mobilecloud.api.Request;
 import mobilecloud.api.Response;
 import mobilecloud.client.Client;
 import mobilecloud.engine.Config;
@@ -29,6 +30,8 @@ public class HostMonitor {
     private final CenterThread centerThread;
     private long checkProviderInterval = Config.HOST_MONITOR_CHECK_PROVIDER_INTERVAL;
     private long checkHostInterval = Config.HOST_MONITOR_CHECK_HOST_INTERVAL;
+    private long retryInterval = Config.HOST_MONITOR_RETRY_INTERVAL;
+    private int retryTimes = Config.HOST_MONITOR_RETRY_TIMES;
     private HostStatusChangeListener listener;
     private boolean hasStarted;
     
@@ -67,6 +70,26 @@ public class HostMonitor {
      */
     public HostMonitor withCheckHostInterval(long interval) {
         this.checkHostInterval = Math.max(0, interval);
+        return this;
+    }
+    
+    /**
+     * Set the retry interval
+     * @param retryInterval the retry interval
+     * @return this monitor
+     */
+    public HostMonitor withRetryInterval(long retryInterval) {
+        this.retryInterval = retryInterval;
+        return this;
+    }
+    
+    /**
+     * Set the retry times
+     * @param retryTimes the retry times
+     * @return this monitor
+     */
+    public HostMonitor withRetryTimes(int retryTimes) {
+        this.retryTimes = retryTimes;
         return this;
     }
     
@@ -142,7 +165,7 @@ public class HostMonitor {
         }
     }
 
-    //A thread which periodically check if a host is alive
+    // A thread which periodically check if a host is alive
     private class MonitorThread extends Thread {
 
         private final Host host;
@@ -159,7 +182,7 @@ public class HostMonitor {
         public void run() {
             while (!stopSign) {
                 try {
-                    Response resp = client.request(new MonitorHostRequest().setIp(host.ip).setPort(host.port));
+                    Response resp = monitorRetry(host, retryTimes, retryInterval);
                     if (!resp.isSuccess()) {
                         throw resp.getThrowable();
                     } else {
@@ -184,8 +207,9 @@ public class HostMonitor {
                     e.printStackTrace();
                 }
             }
-            if(!centerThread.stopSign) {
-                // If this thread is killed by center thread, then we know that the
+            if (!centerThread.stopSign) {
+                // If this thread is killed by center thread, then we know that
+                // the
                 // provider has removed this host. Then we assume that the host
                 // becomes unavailable.
                 if (isAlive == null || isAlive) {
@@ -201,6 +225,18 @@ public class HostMonitor {
             stopSign = true;
             this.interrupt();
         }
+    }
+
+    private Response monitorRetry(Host host, int retryTimes, long retryInterval) throws Exception {
+        Request req = new MonitorHostRequest().setIp(host.ip).setPort(host.port);
+        for (int i = 0; i < retryTimes - 1; i++) {
+            try {
+                return client.request(req);
+            } catch (Exception e) {
+                Thread.sleep(retryInterval);
+            }
+        }
+        return client.request(req);
     }
     
     /**

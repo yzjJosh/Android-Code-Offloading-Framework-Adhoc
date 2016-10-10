@@ -1,5 +1,6 @@
 package mobilecloud.client;
 
+import java.net.InetSocketAddress;
 import java.net.Socket;
 
 /**
@@ -9,8 +10,10 @@ import java.net.Socket;
 public class DefaultSocketBuilder implements SocketBuilder {
 
     @Override
-    public Socket build(String ip, int port) throws Exception {
-        return new Socket(ip, port);
+    public Socket build(String ip, int port, int timeout) throws Exception {
+        Socket socket = new Socket();
+        socket.connect(new InetSocketAddress(ip, port), timeout);
+        return socket;
     }
 
 }
