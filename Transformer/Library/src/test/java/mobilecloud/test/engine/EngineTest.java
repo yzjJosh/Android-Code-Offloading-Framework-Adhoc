@@ -4,6 +4,8 @@ import static org.junit.Assert.*;
 
 import java.io.Serializable;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Collection;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -128,6 +130,32 @@ public class EngineTest {
             }
             return l;
         }
+        
+        public boolean contains(ListNode target) {
+            ListNode node = head;
+            while(node != null) {
+                if(node == target) {
+                    return true;
+                }
+                node = node.next;
+            }
+            return false;
+        }
+        
+        public void concat(Collection<List> lists) {
+            ListNode temp = new ListNode(0);
+            temp.next = head;
+            ListNode prev = temp;
+            for(ListNode node = head; node != null; node = node.next) {
+                prev = node;
+            }
+            for(List list: lists) {
+                for(ListNode node = list.head; node != null; node = node.next) {
+                    prev = prev.next = node;
+                    size ++;
+                }
+            }
+        }
 
         @Override
         public void setIsOnServer(boolean val) {
@@ -184,6 +212,8 @@ public class EngineTest {
     private Method multiply;
     private Method sum;
     private Method sumStatic;
+    private Method contains;
+    private Method concat;
     
     private List l;
     private ListNode l0;
@@ -250,6 +280,8 @@ public class EngineTest {
         add = List.class.getMethod("add", int.class);
         remove = List.class.getMethod("remove", int.class);
         multiply = List.class.getMethod("multiply", Integer.class);
+        contains = List.class.getMethod("contains", ListNode.class);
+        concat = List.class.getMethod("concat", Collection.class);
         sum = TestSum.class.getMethod("sum", int.class, int.class);
         sumStatic = TestSum.class.getMethod("sumStatic", int.class, int.class);
         
@@ -389,6 +421,59 @@ public class EngineTest {
         assertFalse(n3.isOnServer());
         assertEquals(30, n3.val);
         assertNull(n3.next);
+    }
+    
+    @Test
+    public void testContains() {
+        assertTrue(engine.shouldMigrate(contains, l, l2));
+        boolean res = (Boolean) engine.invokeRemotely(contains, l, l2);
+        assertTrue(res);
+        assertFalse(l.isNew());
+        assertFalse(l.isOnServer());
+        assertEquals(4, l.size);
+        assertEquals(l0, l.head);
+        assertFalse(l0.isNew());
+        assertFalse(l0.isOnServer());
+        assertEquals(0, l0.val);
+        assertEquals(l1, l0.next);
+        assertFalse(l1.isNew());
+        assertFalse(l1.isOnServer());
+        assertEquals(1, l1.val);
+        assertEquals(l2, l1.next);
+        assertFalse(l2.isNew());
+        assertFalse(l2.isOnServer());
+        assertEquals(2, l2.val);
+        assertEquals(l3, l2.next);
+        assertFalse(l3.isNew());
+        assertFalse(l3.isOnServer());
+        assertEquals(3, l3.val);
+        assertNull(l3.next);
+    }
+    
+    @Test
+    public void testConcat() {
+        java.util.List<List> lists = new ArrayList<>();
+        for(int i = 0; i<4; i++) {
+            lists.add(new List());
+        }
+        lists.get(0).head = l0;
+        l0.next = null;
+        lists.get(1).head = l1;
+        l1.next = null;
+        lists.get(2).head = l2;
+        l2.next = null;
+        lists.get(3).head = l3;
+        l3.next = null;
+        l.head = null;
+        l.size = 0;
+        assertTrue(engine.shouldMigrate(concat, l, lists));
+        engine.invokeRemotely(concat, l, lists);
+        assertEquals(4, l.size);
+        assertEquals(l0, l.head);
+        assertEquals(l1, l0.next);
+        assertEquals(l2, l1.next);
+        assertEquals(l3, l2.next);
+        assertNull(l3.next);
     }
     
     @Test

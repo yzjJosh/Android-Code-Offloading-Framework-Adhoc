@@ -146,6 +146,44 @@ public class ObjectMigratorTest {
         }
     }
     
+    private static class TestArray implements Remotable{
+        private static final long serialVersionUID = 1L;
+        private boolean isOnServer = false;
+        private boolean isNew = false;
+        private int id = System.identityHashCode(this);
+        ListNode[] n;
+
+        @Override
+        public void setIsOnServer(boolean val) {
+            this.isOnServer = val;
+        }
+
+        @Override
+        public boolean isOnServer() {
+            return this.isOnServer;
+        }
+
+        @Override
+        public int getId() {
+            return this.id;
+        }
+
+        @Override
+        public void setId(int id) {
+            this.id = id;
+        }
+
+        @Override
+        public boolean isNew() {
+            return this.isNew;
+        }
+
+        @Override
+        public void setIsNew(boolean val) {
+            this.isNew = val;
+        }
+    }
+    
     private List l;
     private ListNode l0;
     private ListNode l1;
@@ -428,6 +466,27 @@ public class ObjectMigratorTest {
         assertEquals(l1, cloudBackNodes[1]);
         assertEquals(l2, cloudBackNodes[2]);
         assertEquals(l3, cloudBackNodes[3]);
+    }
+    
+    @Test
+    public void testSync6() throws ClassNotFoundException, IOException {
+        final ListNode[] nodes = new ListNode[]{l0, l1, l2, l3};
+        
+        TestArray t = new TestArray();
+        t.n = nodes;
+        migrator.moveOut(t);
+        TestArray cloud = (TestArray) sendViaNetWork(t);
+        cloud.n[0] = cloud.n[1] = cloud.n[2] = cloud.n[3];
+        TestArray cloudBack = (TestArray) sendViaNetWork(cloud);
+        migrator.sync(cloudBack);
+        assertEquals(l3, t.n[0]);
+        assertEquals(l3, t.n[1]);
+        assertEquals(l3, t.n[2]);
+        assertEquals(l3, t.n[3]);
+        assertEquals(l3, nodes[0]);
+        assertEquals(l3, nodes[1]);
+        assertEquals(l3, nodes[2]);
+        assertEquals(l3, nodes[3]);
     }
     
     @Test
