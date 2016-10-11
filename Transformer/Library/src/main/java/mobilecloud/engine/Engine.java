@@ -17,6 +17,7 @@ import mobilecloud.engine.host.Host;
 import mobilecloud.engine.host.monitor.HostMonitor;
 import mobilecloud.engine.host.monitor.HostStatusChangeListener;
 import mobilecloud.engine.schedular.Schedular;
+import mobilecloud.objs.ObjectMigrator;
 import mobilecloud.server.NoApplicationExecutableException;
 import mobilecloud.server.handler.upload.DuplicateExecutableException;
 import mobilecloud.utils.ByteProvider;

@@ -5,8 +5,6 @@ import static org.junit.Assert.*;
 import java.io.IOException;
 import java.io.Serializable;
 import java.math.BigInteger;
-import java.util.HashSet;
-import java.util.LinkedList;
 
 import org.junit.Test;
 
@@ -34,20 +32,6 @@ public class ClassUtilsTest {
     }
     
     @Test
-    public void testInmmutable() {
-        assertFalse(ClassUtils.isImmutable(HashSet.class));
-        assertFalse(ClassUtils.isImmutable(LinkedList.class));
-        assertTrue(ClassUtils.isImmutable(Foo.class));
-        assertTrue(ClassUtils.isImmutable(int.class));
-        assertTrue(ClassUtils.isImmutable(Bar.class));
-        assertTrue(ClassUtils.isImmutable(Bar.Foo.class));
-        assertTrue(ClassUtils.isImmutable(Imm.class));
-        assertTrue(ClassUtils.isImmutable(Imm.Foo.class));
-        assertTrue(ClassUtils.isImmutable(Imm.Foo.Fa.class));
-        assertTrue(ClassUtils.isImmutable(String.class));
-    }
-    
-    @Test
     public void testSerialization0() throws IOException, SecurityException, ClassNotFoundException {
         SerializeClass s = new SerializeClass();
         s.a = 18;
@@ -69,25 +53,6 @@ public class ClassUtilsTest {
     }
     
     private static class Foo {}
-    
-    private class Bar{
-        public class Foo{}
-    }
-    
-    @SuppressWarnings("unused")
-    private static class Imm {
-        public static int c = 0;
-        public final int a = 0;
-        private final Object o = new Object();
-        protected final String s = "";
-        
-        private class Foo {
-            final Integer f = null;
-            private class Fa {
-                final String s = null;
-            }
-        }
-    }
     
     private static class SerializeClass implements Serializable {
         private static final long serialVersionUID = 1L;

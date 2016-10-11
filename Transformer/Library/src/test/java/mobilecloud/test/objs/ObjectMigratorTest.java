@@ -1,72 +1,49 @@
-package mobilecloud.test.engine;
+package mobilecloud.test.objs;
 
 import static org.junit.Assert.*;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.io.Serializable;
+import java.lang.reflect.Array;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import mobilecloud.engine.ObjectMigrator;
 import mobilecloud.lib.Remotable;
+import mobilecloud.objs.ObjDiff;
+import mobilecloud.objs.ObjectMigrator;
+import mobilecloud.objs.ObjectVisitor;
+import mobilecloud.objs.OnObjectVisitedListener;
+import mobilecloud.objs.Token;
+import mobilecloud.objs.Token.SnapShot;
 import mobilecloud.utils.ClassUtils;
 
+@SuppressWarnings("unchecked")
 public class ObjectMigratorTest {
     
-    private static class ListNode implements Remotable {
-        
+    private static class ListNode implements Serializable {
         private static final long serialVersionUID = 1L;
-        private boolean isOnServer = false;
-        private int id = System.identityHashCode(this);
-        private boolean isNew = false;
         public int val;
         public ListNode next;
         
         public ListNode(int val) {
             this.val = val;
         }
-
-        @Override
-        public void setIsOnServer(boolean val) {
-            this.isOnServer = val;
-        }
-
-        @Override
-        public boolean isOnServer() {
-            return this.isOnServer;
-        }
-
-        @Override
-        public int getId() {
-            return this.id;
-        }
-
-        @Override
-        public void setId(int id) {
-            this.id = id;
-        }
-
-        @Override
-        public boolean isNew() {
-            return this.isNew;
-        }
-
-        @Override
-        public void setIsNew(boolean val) {
-            this.isNew = val;
-        }
         
     }
     
-    private static class List implements Remotable {
+    private static class List implements Serializable {
         private static final long serialVersionUID = 1L;
         public ListNode head;
         public int size;
-        private boolean isOnServer = false;
-        private int id = System.identityHashCode(this);
-        private boolean isNew = false;
         
         public void add(int val) {
             ListNode temp = new ListNode(0);
@@ -114,74 +91,12 @@ public class ObjectMigratorTest {
             prev.next = null;
             head = temp.next;
         }
-
-        @Override
-        public void setIsOnServer(boolean val) {
-            this.isOnServer = val;
-        }
-
-        @Override
-        public boolean isOnServer() {
-            return this.isOnServer;
-        }
-
-        @Override
-        public int getId() {
-            return this.id;
-        }
-
-        @Override
-        public void setId(int id) {
-            this.id = id;
-        }
-
-        @Override
-        public boolean isNew() {
-            return this.isNew;
-        }
-
-        @Override
-        public void setIsNew(boolean val) {
-            this.isNew = val;
-        }
     }
     
-    private static class TestArray implements Remotable{
+    private static class TestArray implements Serializable{
         private static final long serialVersionUID = 1L;
-        private boolean isOnServer = false;
-        private boolean isNew = false;
-        private int id = System.identityHashCode(this);
-        ListNode[] n;
 
-        @Override
-        public void setIsOnServer(boolean val) {
-            this.isOnServer = val;
-        }
-
-        @Override
-        public boolean isOnServer() {
-            return this.isOnServer;
-        }
-
-        @Override
-        public int getId() {
-            return this.id;
-        }
-
-        @Override
-        public void setId(int id) {
-            this.id = id;
-        }
-
-        @Override
-        public boolean isNew() {
-            return this.isNew;
-        }
-
-        @Override
-        public void setIsNew(boolean val) {
-            this.isNew = val;
-        }
+        public ListNode[] n;
     }
     
     private List l;
@@ -207,90 +122,121 @@ public class ObjectMigratorTest {
         migrator = new ObjectMigrator();
     }
     
-    @After
-    public void tearDown() {
-        ObjectMigrator.purgeGlobalMetaData();
+    private Object[] sendViaNetWork(Object... objs) throws IOException, ClassNotFoundException {
+        ObjectInputStream is = new ObjectInputStream(ClassUtils.toInputStream(objs));
+        return (Object[]) is.readObject();
     }
     
-    private Object sendViaNetWork(Object origin) throws IOException, ClassNotFoundException {
-        ObjectInputStream is = new ObjectInputStream(ClassUtils.toInputStream(origin));
-        return is.readObject();
+    private Map<Integer, ObjDiff> getDiffs(Token token, SnapShot snapshot) {
+        return token.takeSnapShot().diff(snapshot);
     }
     
-    @Test
-    public void testMoveOut1() {
-        migrator.moveOut(l);
-        assertTrue(l.isOnServer());
-        assertFalse(l.isNew());
-        assertTrue(l0.isOnServer());
-        assertFalse(l0.isNew());
-        assertTrue(l1.isOnServer());
-        assertFalse(l1.isNew());
-        assertTrue(l2.isOnServer());
-        assertFalse(l2.isNew());
-        assertTrue(l3.isOnServer());
-        assertFalse(l3.isNew());
-    }
-    
-    @Test
-    public void testMoveOut2() {
-        ListNode[] nodes = new ListNode[]{l0, l1, l2, l3};
-        migrator.moveOut(nodes);
-        for(ListNode node: nodes) {
-            assertTrue(node.isOnServer());
-            assertFalse(node.isNew());
+    private Token buildBackToken(Token token, Map<Integer, ObjDiff> diffs) {
+        Token.Builder builder = new Token.Builder();
+        ObjectVisitor visitor = new ObjectVisitor(new OnObjectVisitedListener() {
+            @Override
+            public boolean onObjectVisited(Object obj, Object array, int index) {
+                Array.set(array, index, null);
+                return true;
+            }
+            @Override
+            public boolean onObjectVisited(Object obj, Object from, Field field) {
+                int modifier = field.getModifiers();
+                if (Modifier.isStatic(modifier) || Modifier.isTransient(modifier) || Modifier.isFinal(modifier)) {
+                    // ignore static and transient fields
+                    return false;
+                }
+                if(field.getType().isPrimitive()) {
+                    return false;
+                }
+                try {
+                    field.set(from, null);
+                } catch (IllegalArgumentException | IllegalAccessException e) {
+                    e.printStackTrace();
+                }
+                return true;
+            }
+        });
+        for(int id: diffs.keySet()) {
+            builder.addObject(id, token.getObject(id));
+            visitor.withObject(token.getObject(id));
         }
+        Token backToken = builder.build();
+        visitor.visitFields();
+        return backToken;
+    }
+    
+
+    @Test
+    public void testToken() {
+        migrator.migrate(l);
+        Token token = migrator.takeToken();
+        assertNotNull(token);
+        assertEquals(5, token.size());
+        assertTrue(token.contains(l));
+        assertTrue(token.contains(l0));
+        assertTrue(token.contains(l1));
+        assertTrue(token.contains(l2));
+        assertTrue(token.contains(l3));
+    }
+    
+    @Test
+    public void testToken1() {
+        ListNode[] nodes = new ListNode[]{l0, l1, l2, l3};
+        migrator.migrate(nodes);
+        Token token = migrator.takeToken();
+        assertNotNull(token);
+        assertEquals(5, token.size());
+        assertTrue(token.contains(nodes));
+        assertTrue(token.contains(l0));
+        assertTrue(token.contains(l1));
+        assertTrue(token.contains(l2));
+        assertTrue(token.contains(l3));
     }
     
     @Test
     public void testSync1() throws ClassNotFoundException, IOException {
-        migrator.moveOut(l);
-        List cloud = (List) sendViaNetWork(l);
-        cloud.add(100);
-        assertNotNull(cloud.head.next.next.next.next);
-        assertEquals(100, cloud.head.next.next.next.next.val);
-        assertEquals(5, cloud.size);
-        cloud.head.next.next.next.next.setIsNew(true);
-        cloud.head.next.next.next.next.setIsOnServer(true);
+        migrator.migrate(l);
+        Object[] cloudObjs = sendViaNetWork(l, migrator.takeToken());
+        List cloudList = (List) cloudObjs[0];
+        Token cloudToken = (Token) cloudObjs[1];
+        SnapShot cloudSnapShot = cloudToken.takeSnapShot();
+        cloudList.add(100);
+        assertNotNull(cloudList.head.next.next.next.next);
+        assertEquals(100, cloudList.head.next.next.next.next.val);
+        assertEquals(5, cloudList.size);
         assertNull(l3.next);
-        List cloudBack = (List)sendViaNetWork(cloud);
+        cloudToken = cloudToken.expand();
+        Map<Integer, ObjDiff> cloudDiffs = getDiffs(cloudToken, cloudSnapShot);
+        Token cloudBackToken = buildBackToken(cloudToken, cloudDiffs);
+        Object[] cloudBackObjs = sendViaNetWork(cloudBackToken, cloudDiffs);
+        Token backToken = (Token) cloudBackObjs[0];
+        Map<Integer, ObjDiff> backDiff = (Map<Integer, ObjDiff>) cloudBackObjs[1];
         List prevL = l;
         ListNode prevL0 = l0;
         ListNode prevL1 = l1;
         ListNode prevL2 = l2;
         ListNode prevL3 = l3;
-        migrator.sync(cloudBack);
-        assertTrue(l.isOnServer());
-        assertFalse(l.isNew());
+        migrator.sync(backToken, backDiff);
         assertEquals(5, l.size);
         assertEquals(l.head, l0);
         assertEquals(prevL, l);
-        assertTrue(l0.isOnServer());
-        assertFalse(l0.isNew());
         assertEquals(0, l0.val);
         assertEquals(l0.next, l1);
         assertEquals(prevL0, l0);
-        assertTrue(l1.isOnServer());
-        assertFalse(l1.isNew());
         assertEquals(1, l1.val);
         assertEquals(l1.next, l2);
         assertEquals(prevL1, l1);
-        assertTrue(l2.isOnServer());
-        assertFalse(l2.isNew());
         assertEquals(2, l2.val);
         assertEquals(l2.next, l3);
         assertEquals(prevL2, l2);
-        assertTrue(l3.isOnServer());
-        assertFalse(l3.isNew());
         assertEquals(3, l3.val);
         assertEquals(prevL3, l3);
         assertNotNull(l3.next);
         assertEquals(100, l3.next.val);
-        assertTrue(l3.next.isOnServer());
-        assertTrue(l3.next.isNew());
     }
     
-    @Test
+ /*   @Test
     public void testSync2() throws ClassNotFoundException, IOException {
         migrator.moveOut(l);
         List cloud = (List) sendViaNetWork(l);
@@ -698,6 +644,6 @@ public class ObjectMigratorTest {
         assertFalse(l2.isOnServer());
         assertFalse(l3.isNew());
         assertFalse(l3.isOnServer());
-    }
+    } */
 
 }

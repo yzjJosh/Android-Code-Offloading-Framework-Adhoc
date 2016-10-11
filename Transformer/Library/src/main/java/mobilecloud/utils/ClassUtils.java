@@ -29,7 +29,7 @@ import java.util.UUID;
 public class ClassUtils {
     
     private static Map<String, Class<?>> primitiveTypeClasses = new HashMap<>();
-    private static Set<Class<?>> knownImmutableClasses = new HashSet<>();
+    private static Set<Class<?>> knownBasicTypes = new HashSet<>();
     static {
         primitiveTypeClasses.put(void.class.getName(), void.class);
         primitiveTypeClasses.put(boolean.class.getName(), boolean.class);
@@ -41,28 +41,18 @@ public class ClassUtils {
         primitiveTypeClasses.put(float.class.getName(), float.class);
         primitiveTypeClasses.put(double.class.getName(), double.class);
         
-        knownImmutableClasses.add(Void.class);
-        knownImmutableClasses.add(Boolean.class);
-        knownImmutableClasses.add(Byte.class);
-        knownImmutableClasses.add(Character.class);
-        knownImmutableClasses.add(Short.class);
-        knownImmutableClasses.add(Integer.class);
-        knownImmutableClasses.add(Long.class);
-        knownImmutableClasses.add(Float.class);
-        knownImmutableClasses.add(Double.class);
-        knownImmutableClasses.add(BigInteger.class);
-        knownImmutableClasses.add(BigDecimal.class);
-        knownImmutableClasses.add(String.class);
-        knownImmutableClasses.add(Object.class);
-        knownImmutableClasses.add(StackTraceElement.class);
-        knownImmutableClasses.add(File.class);
-        knownImmutableClasses.add(Locale.class);
-        knownImmutableClasses.add(UUID.class);
-        knownImmutableClasses.add(URL.class);
-        knownImmutableClasses.add(URI.class);
-        knownImmutableClasses.add(Inet4Address.class);
-        knownImmutableClasses.add(Inet6Address.class);
-        knownImmutableClasses.add(InetSocketAddress.class);
+        knownBasicTypes.add(Void.class);
+        knownBasicTypes.add(Boolean.class);
+        knownBasicTypes.add(Byte.class);
+        knownBasicTypes.add(Character.class);
+        knownBasicTypes.add(Short.class);
+        knownBasicTypes.add(Integer.class);
+        knownBasicTypes.add(Long.class);
+        knownBasicTypes.add(Float.class);
+        knownBasicTypes.add(Double.class);
+        knownBasicTypes.add(BigInteger.class);
+        knownBasicTypes.add(BigDecimal.class);
+        knownBasicTypes.add(String.class);
     }
     
     /**
@@ -105,31 +95,15 @@ public class ClassUtils {
     }
     
     /**
-     * Check if a class is immutable for the best practice. This method is conservative and may have false negatives
-     * @param clazz the class to check
-     * @return if it is immutable or not
+     * Check if a class is a basic type. A basic type is a type that is safe to
+     * keep multiple copies when offloading
+     * 
+     * @param clazz
+     *            the class to check
+     * @return if it is basic type or not
      */
-    public static boolean isImmutable(Class<?> clazz) {
-        if(mustBeImmutable(clazz)) {
-            return true;
-        } else {
-            for(Field f: clazz.getDeclaredFields()) {
-                if(Modifier.isStatic(f.getModifiers())) {
-                    continue;
-                } else if(f.isSynthetic()){
-                    if(!isImmutable(f.getType())) {
-                        return false;
-                    }
-                } else if(!Modifier.isFinal(f.getModifiers()) || !mustBeImmutable(f.getType())) {
-                    return false;
-                }
-            }
-            return true;
-        }
-    }
-    
-    private static boolean mustBeImmutable(Class<?> clazz) {
-        return clazz.isPrimitive() || clazz.isEnum() || knownImmutableClasses.contains(clazz);
+    public static boolean isBasicType(Class<?> clazz) {
+        return clazz.isEnum() || clazz.isPrimitive() || knownBasicTypes.contains(clazz);
     }
     
     /**
