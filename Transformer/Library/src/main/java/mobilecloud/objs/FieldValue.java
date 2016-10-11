@@ -1,6 +1,7 @@
 package mobilecloud.objs;
 
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.Objects;
 
 /**
@@ -39,6 +40,10 @@ public class FieldValue implements Serializable {
      */
     public static FieldValue newIdentityHashCode(int hashCode) {
         return new FieldValue(new IdentityHashCodeWrapper(hashCode));
+    }
+    
+    public static FieldValue newArray(FieldValue[] array) {
+        return new FieldValue(new ArrayWrapper(array));
     }
 
     /**
@@ -135,7 +140,7 @@ public class FieldValue implements Serializable {
     private static class IdentityHashCodeWrapper extends Wrapper {
         private static final long serialVersionUID = 1L;
 
-        public IdentityHashCodeWrapper(Object val) {
+        public IdentityHashCodeWrapper(int val) {
             super(val);
         }
 
@@ -148,7 +153,7 @@ public class FieldValue implements Serializable {
     private static class IdWrapper extends Wrapper {
         private static final long serialVersionUID = 1L;
 
-        public IdWrapper(Object val) {
+        public IdWrapper(int val) {
             super(val);
         }
 
@@ -156,5 +161,29 @@ public class FieldValue implements Serializable {
         public String toString() {
             return "I" + super.toString();
         }
+    }
+    
+    private static class ArrayWrapper extends Wrapper {
+        private static final long serialVersionUID = 1L;
+        
+        public ArrayWrapper(FieldValue[] val) {
+            super(val);
+        }
+        
+        @Override
+        public String toString() {
+            return Arrays.toString((FieldValue[]) obj);
+        }
+        
+        @Override
+        public boolean equals(Object o) {
+            if(o == null || o.getClass() != getClass()) {
+                return false;
+            } else {
+                ArrayWrapper that = (ArrayWrapper) o;
+                return Arrays.equals((FieldValue[]) obj, (FieldValue[]) that.obj);
+            }
+        }
+        
     }
 }

@@ -8,6 +8,7 @@ import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
 
+import mobilecloud.objs.Config;
 import mobilecloud.objs.FieldReader;
 import mobilecloud.objs.FieldValue;
 import mobilecloud.objs.ObjDiff;
@@ -76,9 +77,8 @@ public class ObjDiffTest {
     public void test3() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
         Map<String, FieldValue> transform = new HashMap<>();
         Object obj2 = objs[2];
-        transform.put("0", FieldValue.newObjectId(2));
-        transform.put("1", FieldValue.newValue("test"));
-        transform.put("2", FieldValue.newValue(null));
+        transform.put(Config.ARRAY_ENTRY_NAME, FieldValue.newArray(new FieldValue[] { FieldValue.newObjectId(2),
+                FieldValue.newValue("test"), FieldValue.newValue(null) }));
         diff = new ObjDiff(transform);
         diff.apply(objs, reader);
         assertEquals(obj2, objs[0]);

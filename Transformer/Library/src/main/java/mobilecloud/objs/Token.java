@@ -1,6 +1,7 @@
 package mobilecloud.objs;
 
 import java.io.Serializable;
+import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.Collection;
@@ -21,10 +22,12 @@ public class Token implements Serializable {
     private static final long serialVersionUID = 1L;
     private final Map<Integer, Object> objects;
     private transient Map<Integer, Integer> idMap;
+    private int nextId;
     
-    private Token(Map<Integer, Object> objects, Map<Integer, Integer> idMap) {
+    private Token(Map<Integer, Object> objects, Map<Integer, Integer> idMap, int nextId) {
         this.objects = objects;
         this.idMap = idMap;
+        this.nextId = nextId;
     }
     
     private Map<Integer, Integer> getIdMap() {
@@ -47,10 +50,9 @@ public class Token implements Serializable {
     
     /**
      * Expand this token, add all connected objects into the token's object list
-     * @return the expanded token
+     * @return this token
      */
     public Token expand() {
-        final Builder builder = new Builder(this);
         ObjectVisitor visitor = new ObjectVisitor(new OnObjectVisitedListener() {
             @Override
             public boolean onObjectVisited(Object obj, Object from, Field field) {
@@ -65,7 +67,7 @@ public class Token implements Serializable {
                     }
                 }
                 if(!contains(obj)) {
-                    builder.addObject(obj);
+                    addObject(obj);
                 }
                 return true;
             }
@@ -76,13 +78,22 @@ public class Token implements Serializable {
                     return false;
                 }
                 if(!contains(obj)) {
-                    builder.addObject(obj);
+                    addObject(obj);
                 }
                 return true;
             }
         }).withObjects(objects.values());
         visitor.visitRecursively();
-        return builder.build();
+        return this;
+    }
+    
+    // Add an object to this token
+    private void addObject(Object obj) {
+        objects.put(nextId, obj);
+        if(idMap != null) {
+            idMap.put(System.identityHashCode(obj), nextId);
+        }
+        nextId ++;
     }
     
     /**
@@ -142,11 +153,18 @@ public class Token implements Serializable {
                 final HashMap<String, FieldValue> fields = new HashMap<>();
                 fieldsOfObjects.put(id, fields);
                 Object obj = token.getObject(id);
+                FieldValue[] arrTemp = null;
+                if(obj.getClass().isArray()) {
+                    // For array we add a special entry called "array" to record all elements
+                    arrTemp = new FieldValue[Array.getLength(obj)];
+                    fields.put(Config.ARRAY_ENTRY_NAME, FieldValue.newArray(arrTemp));
+                }
+                final  FieldValue[] arr = arrTemp;
                 ObjectVisitor visitor = new ObjectVisitor(new OnObjectVisitedListener() {
                     @Override
                     public boolean onObjectVisited(Object obj, Object array, int index) {
                         if(obj != null) {
-                            addField(fields, token, String.valueOf(index), obj);
+                            arr[index] = createField(token, obj);
                         }
                         return true;
                     }
@@ -163,7 +181,7 @@ public class Token implements Serializable {
                             return false;
                         }
                         if(obj != null) {
-                            addField(fields, token, field.getName(), obj);
+                            fields.put(field.getName(),createField(token, obj));
                         }
                         return true;
                     }
@@ -172,21 +190,21 @@ public class Token implements Serializable {
             }
         }
         
-        private void addField(Map<String, FieldValue> fields, Token token, String name, Object val) {
+        private FieldValue createField(Token token, Object val) {
             if(ClassUtils.isBasicType(val.getClass())) {
                 // val is basic type, record its value directly
-                fields.put(name, FieldValue.newValue(val));
+                return FieldValue.newValue(val);
             } else if(token.contains(val)) {
                 // id is available, store is an id
-                fields.put(name, FieldValue.newObjectId(token.getId(val)));
+                return FieldValue.newObjectId(token.getId(val));
             } else {
                 // id is unavailable, store the identity hash code
-                fields.put(name, FieldValue.newIdentityHashCode(System.identityHashCode(val)));
+                return FieldValue.newIdentityHashCode(System.identityHashCode(val));
             }
         }
         
         /**
-         * Get the diff between this snapshot and a given snap shot. The diff indicates how to transfer objects in given snapshot to objects in current snapshot 
+         * Get the diff between this snapshot and a given snap shot. The diff indicates how to transfer objects in another snapshot to objects in this snapshot 
          * @param snapshot the given snapshot. Which should have the same id mapping as current snapshot
          * @return the diffs, where key is object id, value is difference
          */
@@ -338,7 +356,7 @@ public class Token implements Serializable {
         }
         
         public Token build() {
-            return new Token(objects, idMap);
+            return new Token(objects, idMap, nextId);
         }
     }
 }

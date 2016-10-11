@@ -31,8 +31,10 @@ public class ObjDiff implements Serializable {
         Class<?> clazz = obj.getClass();
         for (String fieldName : diffMap.keySet()) {
             if(clazz.isArray()) {
-                int i = Integer.valueOf(fieldName);
-                Array.set(obj, i, reader.read(diffMap.get(fieldName)));
+                FieldValue[] array = (FieldValue[]) diffMap.get(Config.ARRAY_ENTRY_NAME).get();
+                for(int i=0; i<array.length; i++) {
+                    Array.set(obj, i, reader.read(array[i]));
+                }
             } else {
                 Field f = clazz.getDeclaredField(fieldName);
                 f.setAccessible(true);
