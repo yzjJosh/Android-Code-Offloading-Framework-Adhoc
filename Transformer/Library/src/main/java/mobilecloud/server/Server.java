@@ -25,17 +25,14 @@ public class Server {
     private static Context context;
     private static Server instance;
     
-    private final ExecutableLoader executableLoader;
     private final Map<String, Handler> handlers;
-    private final Map<String, ClassLoader> classLoaders;
     
-    public Server(ExecutableLoader apkLoader) {
-        this.executableLoader = apkLoader;
+    public Server(ExecutableLoader executableLoader) {
         this.handlers = new ConcurrentHashMap<>();
-        this.classLoaders = new ConcurrentHashMap<>();
-        this.registerHandler(RemoteInvocationRequest.class.getName(), new RemoteInvocationHandler(this));
+       
+        this.registerHandler(RemoteInvocationRequest.class.getName(), new RemoteInvocationHandler(executableLoader));
         this.registerHandler(UploadApplicationExecutableRequest.class.getName(),
-                new UploadApplicationExecutableHandler(this, apkLoader));
+                new UploadApplicationExecutableHandler(executableLoader));
         this.registerHandler(MonitorHostRequest.class.getName(), new MonitorHostRequestHandler());
     }
     
@@ -48,35 +45,6 @@ public class Server {
     public Server registerHandler(String type, Handler handler) {
         this.handlers.put(type, handler);
         return this;
-    }
-    
-    /**
-     * Register a class loader which contains classes for a specific application
-     * @param applicationId the application id
-     * @param cl the class loader for that application
-     * @return this server
-     */
-    public Server registerClassLoader(String applicationId, ClassLoader cl) {
-        this.classLoaders.put(applicationId, cl);
-        return this;
-    }
-    
-    /**
-     * Get a class loader belongs to an application
-     * @param applicationId the application id to retrieve
-     * @return the class loader, or null if cannot find it
-     */
-    public ClassLoader getClassLoader(String applicationId) {
-        ClassLoader cl = classLoaders.get(applicationId);
-        if(cl == null) {
-            try {
-                cl = executableLoader.loadExecutable(applicationId);
-                registerClassLoader(applicationId, cl);
-            } catch(Exception e) {
-                e.printStackTrace();
-            }
-        }
-        return cl;
     }
     
     /**

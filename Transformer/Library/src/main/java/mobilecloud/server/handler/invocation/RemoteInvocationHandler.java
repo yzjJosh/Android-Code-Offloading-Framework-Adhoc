@@ -17,8 +17,8 @@ import mobilecloud.objs.ObjectVisitor;
 import mobilecloud.objs.OnObjectVisitedListener;
 import mobilecloud.objs.Token;
 import mobilecloud.objs.Token.SnapShot;
+import mobilecloud.server.ExecutableLoader;
 import mobilecloud.server.NoApplicationExecutableException;
-import mobilecloud.server.Server;
 import mobilecloud.server.handler.Handler;
 import mobilecloud.utils.ClassUtils;
 import mobilecloud.utils.IOUtils;
@@ -28,10 +28,10 @@ import mobilecloud.utils.IOUtils;
  */
 public class RemoteInvocationHandler implements Handler {
     
-    private Server server;
+    private ExecutableLoader exeLoader;
     
-    public RemoteInvocationHandler(Server server) {
-        this.server = server;
+    public RemoteInvocationHandler(ExecutableLoader exeLoader) {
+        this.exeLoader = exeLoader;
     }
 
     @Override
@@ -41,13 +41,17 @@ public class RemoteInvocationHandler implements Handler {
         }
         RemoteInvocationRequest invocReq = (RemoteInvocationRequest) request;
         RemoteInvocationResponse resp = new RemoteInvocationResponse();
-        ClassLoader loader = server.getClassLoader(invocReq.getApplicationId());
-        if (loader == null) {
+        
+        ClassLoader loader = null;
+        try {
+            loader = exeLoader.loadExecutable(invocReq.getApplicationId());
+        } catch (NoApplicationExecutableException e) {
             return resp.setSuccess(false)
                     .setThrowable(new NoApplicationExecutableException(
                             "Cannot find executable for application " + invocReq.getApplicationId()
                                     + ", please send application executable to server and try it again."));
         }
+        
         try {
             
             // Prepare data

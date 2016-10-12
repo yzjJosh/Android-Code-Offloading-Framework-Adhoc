@@ -1,6 +1,8 @@
 package mobilecloud.server;
 
 import java.io.File;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import android.content.Context;
 import dalvik.system.PathClassLoader;
@@ -12,9 +14,11 @@ import dalvik.system.PathClassLoader;
 public class ExecutableLoader {
     
     private Context context;
+    private final Map<String, ClassLoader> classLoaders;
     
     public ExecutableLoader(Context context) {
         this.context = context;
+        this.classLoaders = new ConcurrentHashMap<>();
     }
     
     /**
@@ -60,22 +64,27 @@ public class ExecutableLoader {
      * @param applicationId
      *            the id of application to load
      * @return the classloader
-     * @throws NoApplicationExecutableException if not application executable has been found
+     * @throws NoApplicationExecutableException if no application executable has been found
      */
     public ClassLoader loadExecutable(String applicationId) throws NoApplicationExecutableException {
-        if (new File(getExecutableDirectory(applicationId)).exists()) {
-            StringBuilder path = new StringBuilder();
-            for(File dex: new File(getExecutableDirectory(applicationId)).listFiles()) {
-                if(path.length() > 0) {
-                    path.append(':');
+        ClassLoader cl = classLoaders.get(applicationId);
+        if(cl == null) {
+            if (new File(getExecutableDirectory(applicationId)).exists()) {
+                StringBuilder path = new StringBuilder();
+                for(File dex: new File(getExecutableDirectory(applicationId)).listFiles()) {
+                    if(path.length() > 0) {
+                        path.append(':');
+                    }
+                    path.append(dex.getPath());
                 }
-                path.append(dex.getPath());
+                if(path.length() > 0) {
+                    cl = new PathClassLoader(path.toString(), context.getClassLoader());
+                    classLoaders.put(applicationId, cl);
+                }
             }
-            if(path.length() > 0) {
-                return new PathClassLoader(path.toString(), context.getClassLoader());
-            }
+            throw new NoApplicationExecutableException();
         }
-        throw new NoApplicationExecutableException();
+        return cl;
     }
 
 }

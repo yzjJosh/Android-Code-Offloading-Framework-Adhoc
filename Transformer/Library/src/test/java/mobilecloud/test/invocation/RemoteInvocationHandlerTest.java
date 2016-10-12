@@ -9,6 +9,8 @@ import java.util.Arrays;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.AdditionalMatchers;
+import org.mockito.Matchers;
 import org.mockito.Mockito;
 
 import mobilecloud.api.Invocation;
@@ -19,14 +21,13 @@ import mobilecloud.objs.ObjectMigrator;
 import mobilecloud.objs.Token;
 import mobilecloud.server.ExecutableLoader;
 import mobilecloud.server.NoApplicationExecutableException;
-import mobilecloud.server.Server;
 import mobilecloud.server.handler.invocation.RemoteInvocationHandler;
 import mobilecloud.utils.IOUtils;
 
 public class RemoteInvocationHandlerTest {
     
     private String appName = "test";
-    private Server server;
+    private ExecutableLoader loader;
     private RemoteInvocationRequest req;
     private Foo f;
     private Object[] args = new Object[]{"1", 5};
@@ -67,9 +68,10 @@ public class RemoteInvocationHandlerTest {
     }
     
     @Before
-    public void setUp() throws IOException, NoSuchMethodException, SecurityException {
-        server = new Server(Mockito.mock(ExecutableLoader.class));
-        server.registerClassLoader(appName, ClassLoader.getSystemClassLoader());
+    public void setUp() throws IOException, NoSuchMethodException, SecurityException, NoApplicationExecutableException {
+        loader = Mockito.mock(ExecutableLoader.class);
+        Mockito.when(loader.loadExecutable(Matchers.eq(appName))).thenReturn(ClassLoader.getSystemClassLoader());
+        Mockito.when(loader.loadExecutable(AdditionalMatchers.not(Matchers.eq(appName)))).thenThrow(new NoApplicationExecutableException());
         f = new Foo();
         sum = Foo.class.getMethod("sum", String.class, int.class);
         req = buildRequest(sum, f, args);
@@ -97,7 +99,7 @@ public class RemoteInvocationHandlerTest {
     @Test
     public void testHandleWithoutExecutable() throws Exception {
         req.setApplicationId("");
-        RemoteInvocationHandler handler = new RemoteInvocationHandler(server);
+        RemoteInvocationHandler handler = new RemoteInvocationHandler(loader);
         Response resp = handler.handle(req);
         assertTrue(resp instanceof RemoteInvocationResponse);
         assertFalse(resp.isSuccess());
@@ -107,7 +109,7 @@ public class RemoteInvocationHandlerTest {
     @Test
     public void testHandleWithNullInvoker() throws Exception {
         req = buildRequest(sum, null, args);
-        RemoteInvocationHandler handler = new RemoteInvocationHandler(server);
+        RemoteInvocationHandler handler = new RemoteInvocationHandler(loader);
         Response resp = handler.handle(req);
         assertTrue(resp instanceof RemoteInvocationResponse);
         assertFalse(resp.isSuccess());
@@ -118,7 +120,7 @@ public class RemoteInvocationHandlerTest {
     public void testHandleWithInvokeTargetException() throws Exception {
         Object[] args = new Object[]{"a", 1};
         req = buildRequest(sum, f, args);
-        RemoteInvocationHandler handler = new RemoteInvocationHandler(server);
+        RemoteInvocationHandler handler = new RemoteInvocationHandler(loader);
         Response resp = handler.handle(req);
         assertTrue(resp instanceof RemoteInvocationResponse);
         assertFalse(resp.isSuccess());
@@ -129,7 +131,7 @@ public class RemoteInvocationHandlerTest {
     public void testHandleWithWrongArgumentType() throws Exception {
         Object[] args = new Object[]{1, 2};
         req = buildRequest(sum, f, args);
-        RemoteInvocationHandler handler = new RemoteInvocationHandler(server);
+        RemoteInvocationHandler handler = new RemoteInvocationHandler(loader);
         Response resp = handler.handle(req);
         assertTrue(resp instanceof RemoteInvocationResponse);
         assertFalse(resp.isSuccess());
@@ -138,7 +140,7 @@ public class RemoteInvocationHandlerTest {
     
     @Test
     public void testHandleWithRightConfiguration() throws Exception {
-        RemoteInvocationHandler handler = new RemoteInvocationHandler(server);
+        RemoteInvocationHandler handler = new RemoteInvocationHandler(loader);
         Response resp = handler.handle(req);
         assertTrue(resp instanceof RemoteInvocationResponse);
         assertTrue(resp.isSuccess());
@@ -152,7 +154,7 @@ public class RemoteInvocationHandlerTest {
     public void testHandlePrivateMethod() throws Exception {
         Object[] args = new Object[]{1, 2};
         req = buildRequest(Foo.class.getDeclaredMethod("sum", int.class, int.class), f, args);
-        RemoteInvocationHandler handler = new RemoteInvocationHandler(server);
+        RemoteInvocationHandler handler = new RemoteInvocationHandler(loader);
         Response resp = handler.handle(req);
         assertTrue(resp instanceof RemoteInvocationResponse);
         assertTrue(resp.isSuccess());
@@ -166,7 +168,7 @@ public class RemoteInvocationHandlerTest {
     public void testHandlePrimitiveArray() throws Exception {
         int[] array = new int[] {1, 2, 3, 4};
         req = buildRequest(Foo.class.getDeclaredMethod("multiply", int[].class, int.class), f, array, 2);
-        RemoteInvocationHandler handler = new RemoteInvocationHandler(server);
+        RemoteInvocationHandler handler = new RemoteInvocationHandler(loader);
         Response resp = handler.handle(req);
         assertTrue(resp instanceof RemoteInvocationResponse);
         assertTrue(resp.isSuccess());

@@ -9,6 +9,7 @@ import java.util.Arrays;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Matchers;
 import org.mockito.Mockito;
 
 import mobilecloud.api.IllegalRequestResponse;
@@ -23,6 +24,7 @@ import mobilecloud.objs.Token;
 import mobilecloud.server.ExecutableLoader;
 import mobilecloud.server.IllegalRequestException;
 import mobilecloud.server.InternalServerError;
+import mobilecloud.server.NoApplicationExecutableException;
 import mobilecloud.server.Server;
 import mobilecloud.server.handler.Handler;
 import mobilecloud.utils.IOUtils;
@@ -58,9 +60,10 @@ public class ServerTest {
     }
     
     @Before
-    public void setUp() throws IOException, NoSuchMethodException, SecurityException {
-        server = new Server(Mockito.mock(ExecutableLoader.class));
-        server.registerClassLoader(appName, ClassLoader.getSystemClassLoader());
+    public void setUp() throws IOException, NoSuchMethodException, SecurityException, NoApplicationExecutableException {
+        ExecutableLoader loader = Mockito.mock(ExecutableLoader.class);
+        Mockito.when(loader.loadExecutable(Matchers.anyString())).thenReturn(ClassLoader.getSystemClassLoader());
+        server = new Server(loader);
         f = new Foo();
         sum = Foo.class.getMethod("sum", String.class, int.class);
         req = buildRequest(sum, f, args);

@@ -12,7 +12,7 @@ import mobilecloud.api.Response;
 import mobilecloud.api.UploadApplicationExecutableRequest;
 import mobilecloud.api.UploadApplicationExecutableResponse;
 import mobilecloud.server.ExecutableLoader;
-import mobilecloud.server.Server;
+import mobilecloud.server.NoApplicationExecutableException;
 import mobilecloud.server.handler.Handler;
 import mobilecloud.utils.FileUtils;
 
@@ -21,12 +21,10 @@ import mobilecloud.utils.FileUtils;
  */
 public class UploadApplicationExecutableHandler implements Handler {
     
-    private final Server server;
     private final ExecutableLoader executableLoader;
     private final Set<String> servingApps;
     
-    public UploadApplicationExecutableHandler(Server server, ExecutableLoader executableLoader) {
-        this.server = server;
+    public UploadApplicationExecutableHandler(ExecutableLoader executableLoader) {
         this.executableLoader = executableLoader;
         this.servingApps = new HashSet<>();
     }
@@ -53,9 +51,10 @@ public class UploadApplicationExecutableHandler implements Handler {
         try {
         
             // If the executable already exists, ignore this uploading.
-            if(server.getClassLoader(upReq.getApplicationId()) != null) {
+            try {
+                executableLoader.loadExecutable(upReq.getApplicationId());
                 return resp.setSuccess(false).setThrowable(new DuplicateExecutableException("Executable already exists!"));
-            }
+            } catch(NoApplicationExecutableException e) {}
             
             // Write executable file to tmp folder
             FileOutputStream fileOuputStream = null;
@@ -78,8 +77,8 @@ public class UploadApplicationExecutableHandler implements Handler {
             FileUtils.deleteFolder(executableLoader.getTmpDirectory(upReq.getApplicationId()));
             
             try {
-                ClassLoader cl = executableLoader.loadExecutable(upReq.getApplicationId());
-                server.registerClassLoader(upReq.getApplicationId(), cl);
+                // Load the executable to memory
+                executableLoader.loadExecutable(upReq.getApplicationId());
                 return resp.setSuccess(true);
             } catch (Exception e) {
                 return resp.setSuccess(false).setThrowable(e);

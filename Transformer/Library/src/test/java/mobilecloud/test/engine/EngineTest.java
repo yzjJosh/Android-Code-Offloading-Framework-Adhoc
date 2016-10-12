@@ -6,6 +6,8 @@ import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -28,6 +30,7 @@ import mobilecloud.engine.RemoteExecutionFailedException;
 import mobilecloud.engine.host.Host;
 import mobilecloud.engine.schedular.Schedular;
 import mobilecloud.server.ExecutableLoader;
+import mobilecloud.server.NoApplicationExecutableException;
 import mobilecloud.server.Server;
 import mobilecloud.utils.ByteProvider;
 
@@ -163,7 +166,22 @@ public class EngineTest {
         Mockito.when(schedular.haveAvailable()).thenReturn(true);
         Mockito.when(schedular.availableNum()).thenReturn(1);
         
-        server = new Server(Mockito.mock(ExecutableLoader.class));
+        final Map<String, ClassLoader> map = new HashMap<>();
+        ExecutableLoader loader = Mockito.mock(ExecutableLoader.class);
+        Mockito.doAnswer(new Answer<ClassLoader>(){
+            @Override
+            public ClassLoader answer(InvocationOnMock invocation) throws Throwable {
+                String appId = (String) invocation.getArguments()[0];
+                if(!map.containsKey(appId)) {
+                    throw new NoApplicationExecutableException();
+                } else {
+                    return map.get(appId);
+                }
+            }
+            
+        }).when(loader).loadExecutable(Matchers.anyString());
+        
+        server = new Server(loader);
         
         client = Mockito.mock(Client.class);
         Mockito.when(client.request(Matchers.any(Request.class))).thenAnswer(new Answer<Response>() {
@@ -172,7 +190,7 @@ public class EngineTest {
                 Request req = (Request) invocation.getArguments()[0];
                 if (req instanceof UploadApplicationExecutableRequest) {
                     UploadApplicationExecutableRequest up = (UploadApplicationExecutableRequest) req;
-                    server.registerClassLoader(up.getApplicationId(), ClassLoader.getSystemClassLoader());
+                    map.put(up.getApplicationId(), ClassLoader.getSystemClassLoader());
                     return new UploadApplicationExecutableResponse().setSuccess(true);
                 } else if (req instanceof RemoteInvocationRequest) {
                     return server.serve(req);
