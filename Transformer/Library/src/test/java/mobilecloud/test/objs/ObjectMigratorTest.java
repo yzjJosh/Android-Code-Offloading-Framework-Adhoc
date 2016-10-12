@@ -8,16 +8,11 @@ import java.io.Serializable;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import mobilecloud.lib.Remotable;
 import mobilecloud.objs.ObjDiff;
 import mobilecloud.objs.ObjectMigrator;
 import mobilecloud.objs.ObjectVisitor;
@@ -25,6 +20,7 @@ import mobilecloud.objs.OnObjectVisitedListener;
 import mobilecloud.objs.Token;
 import mobilecloud.objs.Token.SnapShot;
 import mobilecloud.utils.ClassUtils;
+import mobilecloud.utils.IOUtils;
 
 @SuppressWarnings("unchecked")
 public class ObjectMigratorTest {
@@ -123,7 +119,7 @@ public class ObjectMigratorTest {
     }
     
     private Object[] sendViaNetWork(Object... objs) throws IOException, ClassNotFoundException {
-        ObjectInputStream is = new ObjectInputStream(ClassUtils.toInputStream(objs));
+        ObjectInputStream is = new ObjectInputStream(IOUtils.toInputStream(objs));
         return (Object[]) is.readObject();
     }
     
@@ -136,14 +132,17 @@ public class ObjectMigratorTest {
         ObjectVisitor visitor = new ObjectVisitor(new OnObjectVisitedListener() {
             @Override
             public boolean onObjectVisited(Object obj, Object array, int index) {
+                if(ClassUtils.isPrimitiveArray(array.getClass())) {
+                    return false;
+                }
                 Array.set(array, index, null);
                 return true;
             }
             @Override
             public boolean onObjectVisited(Object obj, Object from, Field field) {
                 int modifier = field.getModifiers();
-                if (Modifier.isStatic(modifier) || Modifier.isTransient(modifier) || Modifier.isFinal(modifier)) {
-                    // ignore static and transient fields
+                if (Modifier.isStatic(modifier) || Modifier.isFinal(modifier)) {
+                    // ignore static fields
                     return false;
                 }
                 if(field.getType().isPrimitive()) {
@@ -236,195 +235,152 @@ public class ObjectMigratorTest {
         assertEquals(100, l3.next.val);
     }
     
- /*   @Test
+    @Test
     public void testSync2() throws ClassNotFoundException, IOException {
-        migrator.moveOut(l);
-        List cloud = (List) sendViaNetWork(l);
-        cloud.remove(0);
-        assertEquals(3, cloud.size);
-        assertEquals(1, cloud.head.val);
+        migrator.migrate(l);
+        Object[] cloudObjs = sendViaNetWork(l, migrator.takeToken());
+        List cloudList = (List) cloudObjs[0];
+        Token cloudToken = (Token) cloudObjs[1];
+        SnapShot cloudSnapShot = cloudToken.takeSnapShot();
+        cloudList.remove(0);
+        assertEquals(3, cloudList.size);
+        assertEquals(1, cloudList.head.val);
         assertEquals(4, l.size);
         assertEquals(0, l.head.val);
-        List cloudBack = (List) sendViaNetWork(cloud);
+        cloudToken = cloudToken.expand();
+        Map<Integer, ObjDiff> cloudDiffs = getDiffs(cloudToken, cloudSnapShot);
+        Token cloudBackToken = buildBackToken(cloudToken, cloudDiffs);
+        Object[] cloudBackObjs = sendViaNetWork(cloudBackToken, cloudDiffs);
+        Token backToken = (Token) cloudBackObjs[0];
+        Map<Integer, ObjDiff> backDiff = (Map<Integer, ObjDiff>) cloudBackObjs[1];
         List prevL = l;
         ListNode prevL0 = l0;
         ListNode prevL1 = l1;
         ListNode prevL2 = l2;
         ListNode prevL3 = l3;
-        migrator.sync(cloudBack);
-        assertTrue(l.isOnServer());
-        assertFalse(l.isNew());
+        migrator.sync(backToken, backDiff);
         assertEquals(3, l.size);
         assertEquals(l.head, l1);
         assertEquals(prevL, l);
-        assertTrue(l0.isOnServer());
-        assertFalse(l0.isNew());
         assertEquals(0, l0.val);
         assertEquals(l0.next, l1);
         assertEquals(prevL0, l0);
-        assertTrue(l1.isOnServer());
-        assertFalse(l1.isNew());
         assertEquals(1, l1.val);
         assertEquals(l1.next, l2);
         assertEquals(prevL1, l1);
-        assertTrue(l2.isOnServer());
-        assertFalse(l2.isNew());
         assertEquals(2, l2.val);
         assertEquals(l2.next, l3);
         assertEquals(prevL2, l2);
-        assertTrue(l3.isOnServer());
-        assertFalse(l3.isNew());
         assertEquals(3, l3.val);
         assertEquals(prevL3, l3);
     }
     
     @Test
     public void TestSync3() throws ClassNotFoundException, IOException {
-        migrator.moveOut(l0);
-        ListNode cloud = (ListNode) sendViaNetWork(l0);
+        migrator.migrate(l0);
+        Object[] cloudObjs = sendViaNetWork(l0, migrator.takeToken());
+        ListNode cloudL0 = (ListNode) cloudObjs[0];
+        Token cloudToken = (Token) cloudObjs[1];
+        SnapShot cloudSnapShot = cloudToken.takeSnapShot();
         ListNode cloudL4 = new ListNode(100);
-        cloudL4.setIsNew(true);
-        cloudL4.setIsOnServer(true);
-        cloud.next.next.next.next = cloud;
-        cloudL4.next = cloud;
+        cloudL0.next.next.next.next = cloudL0;
+        cloudL4.next = cloudL0;
         assertNull(l3.next);
-        ListNode cloudBack = (ListNode) sendViaNetWork(cloudL4);
+        cloudToken = new Token.Builder(cloudToken).addObject(cloudL4).build().expand();
+        Map<Integer, ObjDiff> cloudDiffs = getDiffs(cloudToken, cloudSnapShot);
+        Token cloudBackToken = buildBackToken(cloudToken, cloudDiffs);
+        Object[] cloudBackObjs = sendViaNetWork(cloudBackToken, cloudDiffs);
+        Token backToken = (Token) cloudBackObjs[0];
+        Map<Integer, ObjDiff> backDiff = (Map<Integer, ObjDiff>) cloudBackObjs[1];
         ListNode prevL0 = l0;
         ListNode prevL1 = l1;
         ListNode prevL2 = l2;
         ListNode prevL3 = l3;
-        ListNode l4 = (ListNode) migrator.sync(cloudBack);
-        assertTrue(l4.isNew());
-        assertTrue(l4.isOnServer());
+        migrator.sync(backToken, backDiff);
+        ListNode l4 = (ListNode) backToken.getObject(4);
         assertEquals(100, l4.val);
         assertEquals(l0, l4.next);
-        assertTrue(l0.isOnServer());
-        assertFalse(l0.isNew());
         assertEquals(0, l0.val);
         assertEquals(l1, l0.next);
         assertEquals(prevL0, l0);
-        assertTrue(l1.isOnServer());
-        assertFalse(l1.isNew());
         assertEquals(1, l1.val);
         assertEquals(l2, l1.next);
         assertEquals(prevL1, l1);
-        assertTrue(l2.isOnServer());
-        assertFalse(l2.isNew());
         assertEquals(2, l2.val);
         assertEquals(l3, l2.next);
         assertEquals(prevL2, l2);
-        assertTrue(l3.isOnServer());
-        assertFalse(l3.isNew());
         assertEquals(3, l3.val);
         assertEquals(l0, l3.next);
         assertEquals(prevL3, l3);
-        assertFalse(l.isOnServer());
-        assertFalse(l.isNew());
         assertEquals(l0, l.head);
         assertEquals(4, l.size);
     }
     
-    @Test
-    public void testSync4 () throws ClassNotFoundException, IOException {
-        l.setIsNew(true);
-        l.setIsOnServer(true);
-        l0.setIsNew(true);
-        l0.setIsOnServer(true);
-        l1.setIsNew(true);
-        l1.setIsOnServer(true);
-        l2.setIsNew(true);
-        l2.setIsOnServer(true);
-        l3.setIsNew(true);
-        l3.setIsOnServer(true);
-        l3.next = l0;
-        List cloudBack = (List) sendViaNetWork(l);
-        migrator.sync(cloudBack);
-        List backL = cloudBack;
-        ListNode back0 = cloudBack.head;
-        ListNode back1 = back0.next;
-        ListNode back2 = back1.next;
-        ListNode back3 = back2.next;
-        assertTrue(backL.isNew());
-        assertTrue(backL.isOnServer());
-        assertTrue(back0.isNew());
-        assertTrue(back0.isOnServer());
-        assertEquals(0, back0.val);
-        assertEquals(back1, back0.next);
-        assertTrue(back1.isNew());
-        assertTrue(back1.isOnServer());
-        assertEquals(1, back1.val);
-        assertEquals(back2, back1.next);
-        assertTrue(back2.isNew());
-        assertTrue(back2.isOnServer());
-        assertEquals(2, back2.val);
-        assertEquals(back3, back2.next);
-        assertTrue(back3.isNew());
-        assertTrue(back3.isOnServer());
-        assertEquals(3, back3.val);
-        assertEquals(back0, back3.next);
-    }
     
     @Test
-    public void testSync5() throws ClassNotFoundException, IOException {
+    public void testSync4() throws ClassNotFoundException, IOException {
         l.head = null;
         l.size = 0;
         ListNode[] nodes = new ListNode[]{l0, l1, l2, l3};
-        migrator.moveOut(l);
-        migrator.moveOut(nodes);
-        List cloud = (List) sendViaNetWork(l);
-        ListNode[] cloudNodes = (ListNode[]) sendViaNetWork(nodes);
-        cloud.addNodes(cloudNodes);
-        List cloudBack = (List) sendViaNetWork(cloud);
-        ListNode[] cloudBackNodes = (ListNode[]) sendViaNetWork(cloudNodes);
+        migrator.migrate(l);
+        migrator.migrate(nodes);
+        Object[] cloudObjs = sendViaNetWork(l, nodes, migrator.takeToken());
+        List cloudList = (List) cloudObjs[0];
+        ListNode[] cloudNodes = (ListNode[]) cloudObjs[1];
+        Token cloudToken = (Token) cloudObjs[2];
+        SnapShot cloudSnapShot = cloudToken.takeSnapShot();
+        cloudList.addNodes(cloudNodes);
+        cloudToken = cloudToken.expand();
+        Map<Integer, ObjDiff> cloudDiffs = getDiffs(cloudToken, cloudSnapShot);
+        Token cloudBackToken = buildBackToken(cloudToken, cloudDiffs);
+        Object[] cloudBackObjs = sendViaNetWork(cloudBackToken, cloudDiffs);
+        Token backToken = (Token) cloudBackObjs[0];
+        Map<Integer, ObjDiff> backDiff = (Map<Integer, ObjDiff>) cloudBackObjs[1];
         List prevL = l;
         ListNode prevL0 = l0;
         ListNode prevL1 = l1;
         ListNode prevL2 = l2;
         ListNode prevL3 = l3;
-        List l = (List) migrator.sync(cloudBack);
-        nodes = (ListNode[]) migrator.sync(cloudBackNodes);
-        assertTrue(l.isOnServer());
-        assertFalse(l.isNew());
+        migrator.sync(backToken, backDiff);
         assertEquals(4, l.size);
         assertEquals(l.head, l0);
         assertEquals(prevL, l);
-        assertTrue(l0.isOnServer());
-        assertFalse(l0.isNew());
         assertEquals(0, l0.val);
         assertEquals(l0.next, l1);
         assertEquals(prevL0, l0);
-        assertTrue(l1.isOnServer());
-        assertFalse(l1.isNew());
         assertEquals(1, l1.val);
         assertEquals(l1.next, l2);
         assertEquals(prevL1, l1);
-        assertTrue(l2.isOnServer());
-        assertFalse(l2.isNew());
         assertEquals(2, l2.val);
         assertEquals(l2.next, l3);
         assertEquals(prevL2, l2);
-        assertTrue(l3.isOnServer());
-        assertFalse(l3.isNew());
         assertEquals(3, l3.val);
         assertEquals(prevL3, l3);
         assertNull(l3.next);
-        assertEquals(l0, cloudBackNodes[0]);
-        assertEquals(l1, cloudBackNodes[1]);
-        assertEquals(l2, cloudBackNodes[2]);
-        assertEquals(l3, cloudBackNodes[3]);
+        assertEquals(l0, nodes[0]);
+        assertEquals(l1, nodes[1]);
+        assertEquals(l2, nodes[2]);
+        assertEquals(l3, nodes[3]);
     }
     
     @Test
-    public void testSync6() throws ClassNotFoundException, IOException {
+    public void testSync5() throws ClassNotFoundException, IOException {
         final ListNode[] nodes = new ListNode[]{l0, l1, l2, l3};
-        
         TestArray t = new TestArray();
         t.n = nodes;
-        migrator.moveOut(t);
-        TestArray cloud = (TestArray) sendViaNetWork(t);
-        cloud.n[0] = cloud.n[1] = cloud.n[2] = cloud.n[3];
-        TestArray cloudBack = (TestArray) sendViaNetWork(cloud);
-        migrator.sync(cloudBack);
+        migrator.migrate(t);
+        Object[] cloudObjs = sendViaNetWork(t, migrator.takeToken());
+        TestArray cloudArray = (TestArray) cloudObjs[0];
+        Token cloudToken = (Token) cloudObjs[1];
+        SnapShot cloudSnapShot = cloudToken.takeSnapShot();
+        cloudArray.n[0] = cloudArray.n[1] = cloudArray.n[2] = cloudArray.n[3];
+        cloudToken = cloudToken.expand();
+        Map<Integer, ObjDiff> cloudDiffs = getDiffs(cloudToken, cloudSnapShot);
+        Token cloudBackToken = buildBackToken(cloudToken, cloudDiffs);
+        Object[] cloudBackObjs = sendViaNetWork(cloudBackToken, cloudDiffs);
+        Token backToken = (Token) cloudBackObjs[0];
+        Map<Integer, ObjDiff> backDiff = (Map<Integer, ObjDiff>) cloudBackObjs[1];
+        migrator.sync(backToken, backDiff);
         assertEquals(l3, t.n[0]);
         assertEquals(l3, t.n[1]);
         assertEquals(l3, t.n[2]);
@@ -433,217 +389,63 @@ public class ObjectMigratorTest {
         assertEquals(l3, nodes[1]);
         assertEquals(l3, nodes[2]);
         assertEquals(l3, nodes[3]);
+        assertTrue(nodes == t.n);
     }
     
     @Test
-    public void testJoinObjects1() {
-        migrator.moveOut(l);
-        migrator.joinObjects();
-        assertFalse(l.isNew());
-        assertFalse(l.isOnServer());
-        assertFalse(l0.isNew());
-        assertFalse(l0.isOnServer());
-        assertFalse(l1.isNew());
-        assertFalse(l1.isOnServer());
-        assertFalse(l2.isNew());
-        assertFalse(l2.isOnServer());
-        assertFalse(l3.isNew());
-        assertFalse(l3.isOnServer());
+    public void testSync6() throws ClassNotFoundException, IOException {
+        final ListNode[] nodes = new ListNode[]{l0, l1, l2, l3};
+        TestArray t = new TestArray();
+        migrator.migrate(t);
+        migrator.migrate(nodes);
+        Object[] cloudObjs = sendViaNetWork(t, nodes, migrator.takeToken());
+        TestArray cloudArray = (TestArray) cloudObjs[0];
+        ListNode[] cloudNodes = (ListNode[]) cloudObjs[1];
+        Token cloudToken = (Token) cloudObjs[2];
+        SnapShot cloudSnapShot = cloudToken.takeSnapShot();
+        cloudArray.n = cloudNodes;
+        cloudArray.n[0] = cloudArray.n[1] = cloudArray.n[2] = cloudArray.n[3];
+        cloudToken = cloudToken.expand();
+        Map<Integer, ObjDiff> cloudDiffs = getDiffs(cloudToken, cloudSnapShot);
+        Token cloudBackToken = buildBackToken(cloudToken, cloudDiffs);
+        Object[] cloudBackObjs = sendViaNetWork(cloudBackToken, cloudDiffs);
+        Token backToken = (Token) cloudBackObjs[0];
+        Map<Integer, ObjDiff> backDiff = (Map<Integer, ObjDiff>) cloudBackObjs[1];
+        migrator.sync(backToken, backDiff);
+        assertEquals(l3, t.n[0]);
+        assertEquals(l3, t.n[1]);
+        assertEquals(l3, t.n[2]);
+        assertEquals(l3, t.n[3]);
+        assertEquals(l3, nodes[0]);
+        assertEquals(l3, nodes[1]);
+        assertEquals(l3, nodes[2]);
+        assertEquals(l3, nodes[3]);
+        assertTrue(nodes == t.n);
     }
-
+    
     @Test
-    public void testJoinObjects2() throws ClassNotFoundException, IOException {
-        migrator.moveOut(l);
-        List cloud = (List) sendViaNetWork(l);
-        cloud.add(100);
-        assertNotNull(cloud.head.next.next.next.next);
-        assertEquals(100, cloud.head.next.next.next.next.val);
-        assertEquals(5, cloud.size);
-        cloud.head.next.next.next.next.setIsNew(true);
-        cloud.head.next.next.next.next.setIsOnServer(true);
-        assertNull(l3.next);
-        List cloudBack = (List)sendViaNetWork(cloud);
-        List prevL = l;
-        ListNode prevL0 = l0;
-        ListNode prevL1 = l1;
-        ListNode prevL2 = l2;
-        ListNode prevL3 = l3;
-        migrator.sync(cloudBack);
-        migrator.joinObjects();
-        assertFalse(l.isOnServer());
-        assertFalse(l.isNew());
-        assertEquals(5, l.size);
-        assertEquals(l.head, l0);
-        assertEquals(prevL, l);
-        assertFalse(l0.isOnServer());
-        assertFalse(l0.isNew());
-        assertEquals(0, l0.val);
-        assertEquals(l0.next, l1);
-        assertEquals(prevL0, l0);
-        assertFalse(l1.isOnServer());
-        assertFalse(l1.isNew());
-        assertEquals(1, l1.val);
-        assertEquals(l1.next, l2);
-        assertEquals(prevL1, l1);
-        assertFalse(l2.isOnServer());
-        assertFalse(l2.isNew());
-        assertEquals(2, l2.val);
-        assertEquals(l2.next, l3);
-        assertEquals(prevL2, l2);
-        assertFalse(l3.isOnServer());
-        assertFalse(l3.isNew());
-        assertEquals(3, l3.val);
-        assertEquals(prevL3, l3);
-        assertNotNull(l3.next);
+    public void testGetObject() throws ClassNotFoundException, IOException {
+        migrator.migrate(l);
+        Token token = migrator.takeToken();
+        Object[] cloudObjs = sendViaNetWork(l, token);
+        List cloudList = (List) cloudObjs[0];
+        Token cloudToken = (Token) cloudObjs[1];
+        SnapShot cloudSnapShot = cloudToken.takeSnapShot();
+        cloudList.add(100);
+        cloudToken = cloudToken.expand();
+        Map<Integer, ObjDiff> cloudDiffs = getDiffs(cloudToken, cloudSnapShot);
+        Object[] cloudBackObjs = sendViaNetWork(cloudToken, cloudDiffs, cloudList);
+        Token backToken = (Token) cloudBackObjs[0];
+        Map<Integer, ObjDiff> backDiff = (Map<Integer, ObjDiff>) cloudBackObjs[1];
+        List backList = (List) cloudBackObjs[2];
+        migrator.sync(backToken, backDiff);
+        assertEquals(l, migrator.getObject(backList));
+        assertEquals(l0, migrator.getObject(backList.head));
+        assertEquals(l1, migrator.getObject(backList.head.next));
+        assertEquals(l2, migrator.getObject(backList.head.next.next));
+        assertEquals(l3, migrator.getObject(backList.head.next.next.next));
+        assertEquals(l3.next, migrator.getObject(backList.head.next.next.next.next));
         assertEquals(100, l3.next.val);
-        assertFalse(l3.next.isOnServer());
-        assertFalse(l3.next.isNew());
     }
     
-    @Test
-    public void testJoinObjects3() throws ClassNotFoundException, IOException {
-        migrator.moveOut(l);
-        List cloud = (List) sendViaNetWork(l);
-        cloud.remove(0);
-        assertEquals(3, cloud.size);
-        assertEquals(1, cloud.head.val);
-        assertEquals(4, l.size);
-        assertEquals(0, l.head.val);
-        List cloudBack = (List) sendViaNetWork(cloud);
-        List prevL = l;
-        ListNode prevL0 = l0;
-        ListNode prevL1 = l1;
-        ListNode prevL2 = l2;
-        ListNode prevL3 = l3;
-        migrator.sync(cloudBack);
-        migrator.joinObjects();
-        assertFalse(l.isOnServer());
-        assertFalse(l.isNew());
-        assertEquals(3, l.size);
-        assertEquals(l.head, l1);
-        assertEquals(prevL, l);
-        assertFalse(l0.isOnServer());
-        assertFalse(l0.isNew());
-        assertEquals(0, l0.val);
-        assertEquals(l0.next, l1);
-        assertEquals(prevL0, l0);
-        assertFalse(l1.isOnServer());
-        assertFalse(l1.isNew());
-        assertEquals(1, l1.val);
-        assertEquals(l1.next, l2);
-        assertEquals(prevL1, l1);
-        assertFalse(l2.isOnServer());
-        assertFalse(l2.isNew());
-        assertEquals(2, l2.val);
-        assertEquals(l2.next, l3);
-        assertEquals(prevL2, l2);
-        assertFalse(l3.isOnServer());
-        assertFalse(l3.isNew());
-        assertEquals(3, l3.val);
-        assertEquals(prevL3, l3);
-    }
-    
-    @Test
-    public void TestJoinObjects5() throws ClassNotFoundException, IOException {
-        migrator.moveOut(l0);
-        ListNode cloud = (ListNode) sendViaNetWork(l0);
-        ListNode cloudL4 = new ListNode(100);
-        cloudL4.setIsNew(true);
-        cloudL4.setIsOnServer(true);
-        cloud.next.next.next.next = cloud;
-        cloudL4.next = cloud;
-        assertNull(l3.next);
-        ListNode cloudBack = (ListNode) sendViaNetWork(cloudL4);
-        ListNode prevL0 = l0;
-        ListNode prevL1 = l1;
-        ListNode prevL2 = l2;
-        ListNode prevL3 = l3;
-        ListNode l4 = (ListNode) migrator.sync(cloudBack);
-        migrator.joinObjects();
-        assertFalse(l4.isNew());
-        assertFalse(l4.isOnServer());
-        assertEquals(100, l4.val);
-        assertEquals(l0, l4.next);
-        assertFalse(l0.isOnServer());
-        assertFalse(l0.isNew());
-        assertEquals(0, l0.val);
-        assertEquals(l1, l0.next);
-        assertEquals(prevL0, l0);
-        assertFalse(l1.isOnServer());
-        assertFalse(l1.isNew());
-        assertEquals(1, l1.val);
-        assertEquals(l2, l1.next);
-        assertEquals(prevL1, l1);
-        assertFalse(l2.isOnServer());
-        assertFalse(l2.isNew());
-        assertEquals(2, l2.val);
-        assertEquals(l3, l2.next);
-        assertEquals(prevL2, l2);
-        assertFalse(l3.isOnServer());
-        assertFalse(l3.isNew());
-        assertEquals(3, l3.val);
-        assertEquals(l0, l3.next);
-        assertEquals(prevL3, l3);
-        assertFalse(l.isOnServer());
-        assertFalse(l.isNew());
-        assertEquals(l0, l.head);
-        assertEquals(4, l.size);
-    }
-    
-    @Test
-    public void testJoinObjects6 () throws ClassNotFoundException, IOException {
-        l.setIsNew(true);
-        l.setIsOnServer(true);
-        l0.setIsNew(true);
-        l0.setIsOnServer(true);
-        l1.setIsNew(true);
-        l1.setIsOnServer(true);
-        l2.setIsNew(true);
-        l2.setIsOnServer(true);
-        l3.setIsNew(true);
-        l3.setIsOnServer(true);
-        l3.next = l0;
-        List cloudBack = (List) sendViaNetWork(l);
-        migrator.sync(cloudBack);
-        migrator.joinObjects();
-        List backL = cloudBack;
-        ListNode back0 = cloudBack.head;
-        ListNode back1 = back0.next;
-        ListNode back2 = back1.next;
-        ListNode back3 = back2.next;
-        assertFalse(backL.isNew());
-        assertFalse(backL.isOnServer());
-        assertFalse(back0.isNew());
-        assertFalse(back0.isOnServer());
-        assertEquals(0, back0.val);
-        assertEquals(back1, back0.next);
-        assertFalse(back1.isNew());
-        assertFalse(back1.isOnServer());
-        assertEquals(1, back1.val);
-        assertEquals(back2, back1.next);
-        assertFalse(back2.isNew());
-        assertFalse(back2.isOnServer());
-        assertEquals(2, back2.val);
-        assertEquals(back3, back2.next);
-        assertFalse(back3.isNew());
-        assertFalse(back3.isOnServer());
-        assertEquals(3, back3.val);
-        assertEquals(back0, back3.next);
-    }
-    
-    @Test
-    public void testJoinObjects7() {
-        ListNode[] nodes = new ListNode[]{l0, l1, l2, l3};
-        migrator.moveOut(nodes);
-        migrator.joinObjects();
-        assertFalse(l0.isNew());
-        assertFalse(l0.isOnServer());
-        assertFalse(l1.isNew());
-        assertFalse(l1.isOnServer());
-        assertFalse(l2.isNew());
-        assertFalse(l2.isOnServer());
-        assertFalse(l3.isNew());
-        assertFalse(l3.isOnServer());
-    } */
-
 }

@@ -8,11 +8,11 @@ import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
 
-import mobilecloud.objs.FieldReader;
-import mobilecloud.objs.FieldValue;
 import mobilecloud.objs.ObjDiff;
 import mobilecloud.objs.Token;
 import mobilecloud.objs.Token.SnapShot;
+import mobilecloud.objs.field.FieldReader;
+import mobilecloud.objs.field.FieldValue;
 
 public class TokenTest {
 

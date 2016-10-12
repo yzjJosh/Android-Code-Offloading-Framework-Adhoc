@@ -2,6 +2,7 @@ package example.matrixmultiply;
 
 import android.util.Log;
 
+import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -12,10 +13,11 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import mobilecloud.engine.Engine;
-import mobilecloud.lib.Remotable;
 import mobilecloud.lib.Remote;
 
 public class MatrixMultiply {
+
+    private static final int NUM_OF_THREADS = 4;
 
     /**
      * Multiply two matrixes parallelly
@@ -32,17 +34,21 @@ public class MatrixMultiply {
                 transMat2[j][i] = mat2[i][j];
             }
         }
-        ExecutorService executor = Executors.newFixedThreadPool(10);
-        List<Future<int[]>> futureList = new LinkedList<>();
+        ExecutorService executor = Executors.newCachedThreadPool();
+        List<Future<int[][]>> futureList = new LinkedList<>();
         int[][] res = new int[m1][n2];
-        for(int i=0; i<m1; i++) {
-            futureList.add(executor.submit(new RowGetter(res[i], mat1[i], transMat2)));
+
+        int rowsPerThread = (int) Math.ceil((double)m1/NUM_OF_THREADS);
+
+        for(int i=0; i<NUM_OF_THREADS; i++) {
+            int lo = i*rowsPerThread;
+            int hi = Math.min(lo + rowsPerThread - 1, m1-1);
+            futureList.add(executor.submit(new Worker(rows(res, lo, hi), rows(mat1, lo, hi), transMat2)));
         }
 
-        Iterator<Future<int[]>> it = futureList.iterator();
-        for(int i=0; i<m1; i++) {
+        for(Future<int[][]> f: futureList) {
             try {
-                it.next().get();
+                f.get();
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -51,39 +57,49 @@ public class MatrixMultiply {
         return res;
     }
 
-    private static class RowGetter implements Callable<int[]>, Remotable{
+    private static int[][] rows(int[][] mat, int lo, int hi) {
+        int[][] res = new int[hi-lo+1][];
+        for(int i=lo; i<=hi; i++) {
+            res[i-lo] = mat[i];
+        }
+        return res;
+    }
 
-        private static final String TAG = RowGetter.class.getSimpleName();
+    private static class Worker implements Callable<int[][]>, Serializable{
+
+        private static final String TAG = Worker.class.getSimpleName();
 
         private boolean isNew = true;
         private boolean isOnServer = Engine.isOnCloud();
         private int id = System.identityHashCode(this);
 
-        private int[] res;
-        private int[] row;
+        private int[][] res;
+        private int[][] rows;
         private int[][] cols;
 
-        public RowGetter(int[] res, int[] row, int[][] cols) {
+        public Worker(int[][] res, int[][] row, int[][] cols) {
             this.res = res;
-            this.row = row;
+            this.rows = row;
             this.cols = cols;
         }
 
         @Remote
         @Override
-        public int[] call() throws Exception {
+        public int[][] call() throws Exception {
             try {
-                Method method = RowGetter.class.getMethod("call");
+                Method method = Worker.class.getMethod("call");
                 if(Engine.getInstance().shouldMigrate(method, this)) {
-                    Log.d(TAG, "Calculating row remotely ...");
-                    return (int[]) Engine.getInstance().invokeRemotely(method, this);
+    //                Log.d(TAG, "Calculating row remotely ...");
+                    return (int[][]) Engine.getInstance().invokeRemotely(method, this);
                 }
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            Log.d(TAG, "Calculating row locally ...");
-            for(int i=0; i<cols.length; i++) {
-                res[i] = multiplyVector(row, cols[i]);
+   //         Log.d(TAG, "Calculating row locally ...");
+            for(int i=0; i<rows.length; i++) {
+                for(int j=0; j<cols.length; j++) {
+                    res[i][j] = multiplyVector(rows[i], cols[j]);
+                }
             }
             return res;
         }
@@ -96,35 +112,6 @@ public class MatrixMultiply {
             return res;
         }
 
-        @Override
-        public void setIsOnServer(boolean b) {
-            this.isOnServer = b;
-        }
-
-        @Override
-        public boolean isOnServer() {
-            return this.isOnServer;
-        }
-
-        @Override
-        public int getId() {
-            return this.id;
-        }
-
-        @Override
-        public void setId(int i) {
-            this.id = i;
-        }
-
-        @Override
-        public boolean isNew() {
-            return this.isNew;
-        }
-
-        @Override
-        public void setIsNew(boolean b) {
-            this.isNew = b;
-        }
     }
 
     public static int[][] randMat(int m, int n) {

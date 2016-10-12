@@ -1,18 +1,27 @@
 package mobilecloud.server.handler.invocation;
 
+import java.lang.reflect.Array;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.List;
+import java.lang.reflect.Modifier;
+import java.util.Map;
 
+import mobilecloud.api.Invocation;
 import mobilecloud.api.RemoteInvocationRequest;
 import mobilecloud.api.RemoteInvocationResponse;
 import mobilecloud.api.Request;
 import mobilecloud.api.Response;
+import mobilecloud.objs.ObjDiff;
+import mobilecloud.objs.ObjectVisitor;
+import mobilecloud.objs.OnObjectVisitedListener;
+import mobilecloud.objs.Token;
+import mobilecloud.objs.Token.SnapShot;
 import mobilecloud.server.NoApplicationExecutableException;
 import mobilecloud.server.Server;
 import mobilecloud.server.handler.Handler;
 import mobilecloud.utils.ClassUtils;
+import mobilecloud.utils.IOUtils;
 
 /**
  * A class which handles remote invocation requests
@@ -40,47 +49,89 @@ public class RemoteInvocationHandler implements Handler {
                                     + ", please send application executable to server and try it again."));
         }
         try {
-            String[] argTypesName = invocReq.getArgTypesName();
-            List<byte[]> argsData = invocReq.getArgsData();
-            byte[] invokerData = invocReq.getInvokerData();
             
+            // Prepare data
+            Invocation invocation = (Invocation) IOUtils.readObject(invocReq.getInvocationData(), loader);
             Class<?> declareClazz = ClassUtils.loadClass(loader, invocReq.getClazzName());
+            String[] argTypesName = invocReq.getArgTypesName();
             Class<?>[] argTypes = new Class<?>[argTypesName.length];
-            Object[] args = new Object[argTypesName.length];
             for (int i = 0; i < argTypesName.length; i++) {
                 argTypes[i] = ClassUtils.loadClass(loader, argTypesName[i]);
-                args[i] = ClassUtils.readObject(argsData.get(i), loader);
             }
-            Object invoker = ClassUtils.readObject(invokerData, loader);
+            Method method = declareClazz.getDeclaredMethod(invocReq.getMethodName(), argTypes);
+            
+            // Take first snap shot
+            Token token = invocation.getToken();
+            SnapShot snapShotOnReceiving = token.takeSnapShot();
             
             // Invoke the method
-            Method method = declareClazz.getDeclaredMethod(invocReq.getMethodName(), argTypes);
             method.setAccessible(true);
-            Object ret = method.invoke(invoker, args);
+            Object ret = method.invoke(invocation.getInvoker(), invocation.getArgs());
             
-            //If invoker or parameters are not changed, we ignore them in response
-            byte[] newInvokerData = ClassUtils.toBytesArray(invoker);
-            if(Arrays.equals(invokerData, newInvokerData)) {
-                invokerData = null;
-            } else {
-                invokerData = newInvokerData;
+            // Add return value to token
+            if(ret != null && !ClassUtils.isBasicType(ret.getClass())) {
+                token = new Token.Builder(token).addObject(ret).build();
             }
-            for(int i=0; i < args.length; i++) {
-                byte[] newArgData = ClassUtils.toBytesArray(args[i]);
-                if(Arrays.equals(argsData.get(i), newArgData)) {
-                    argsData.set(i, null);
-                } else {
-                    argsData.set(i, newArgData);
+            
+            //Expand token
+            token.expand();
+            
+            // Calculate diffs
+            Map<Integer, ObjDiff> diffs = token.takeSnapShot().diff(snapShotOnReceiving);
+            
+            // Add "dirty" objects to return token and trim "dirty" objects
+            Token.Builder builder = new Token.Builder();
+            ObjectVisitor visitor = new ObjectVisitor(new ObjectTrimer());
+            for(int id: diffs.keySet()) {
+                Object obj = token.getObject(id);
+                builder.addObject(id, obj);
+                if (ClassUtils.isPrimitiveArray(obj.getClass())) {
+                    // If this obejct is a primitive array, we ignore it because
+                    // we can never set its element to null
+                    continue;
                 }
+                visitor.withObject(obj);
             }
+            visitor.visitFields();
+            Token backToken = builder.build();
             
-            resp.setArgsData(argsData).setInvokerData(invokerData).setReturnValueData(ClassUtils.toBytesArray(ret))
-                    .setSuccess(true);
-            return resp;
+            return resp.setToken(backToken).setDiffs(diffs).setReturnVal(ret).setSuccess(true);
         } catch (InvocationTargetException e) {
             return resp.setSuccess(false).setThrowable(e.getTargetException());
         } catch (Exception e) {
             return resp.setSuccess(false).setThrowable(e);
+        }
+    }
+    
+    private class ObjectTrimer implements OnObjectVisitedListener {
+        @Override
+        public boolean onObjectVisited(Object obj, Object array, int index) {
+            if(ClassUtils.isPrimitiveArray(obj.getClass())) {
+                return false;
+            } else {
+                Array.set(array, index, null);
+                return true;
+            }
+        }
+
+        @Override
+        public boolean onObjectVisited(Object obj, Object from, Field field) {
+            int modifier = field.getModifiers();
+            if (Modifier.isStatic(modifier) || Modifier.isFinal(modifier)) {
+                // ignore static and final fields
+                return false;
+            }
+            if (field.getType().isPrimitive()) {
+                // ignore primitive fields
+                return false;
+            }
+            try {
+                // Set pointers to null
+                field.set(from, null);
+            } catch (IllegalArgumentException | IllegalAccessException e) {
+                e.printStackTrace();
+            }
+            return true;
         }
     }
 

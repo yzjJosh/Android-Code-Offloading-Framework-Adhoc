@@ -1,4 +1,4 @@
-package mobilecloud.objs;
+package mobilecloud.objs.field;
 
 /**
  * Field reader is a reader that can read a FieldValue object

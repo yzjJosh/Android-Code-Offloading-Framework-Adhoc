@@ -5,15 +5,18 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.util.Map;
 
+import mobilecloud.objs.field.FieldReader;
+import mobilecloud.objs.field.FieldValue;
+
 /**
  * Object diff represents the difference of an object's fields
  */
 public class ObjDiff implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    private Map<String, FieldValue> diffMap;
+    private Map<Object, FieldValue> diffMap;
 
-    public ObjDiff(Map<String, FieldValue> diffMap) {
+    public ObjDiff(Map<Object, FieldValue> diffMap) {
         this.diffMap = diffMap;
     }
 
@@ -29,16 +32,13 @@ public class ObjDiff implements Serializable {
     public void apply(Object obj, FieldReader reader)
             throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
         Class<?> clazz = obj.getClass();
-        for (String fieldName : diffMap.keySet()) {
+        for (Object field : diffMap.keySet()) {
             if(clazz.isArray()) {
-                FieldValue[] array = (FieldValue[]) diffMap.get(Config.ARRAY_ENTRY_NAME).get();
-                for(int i=0; i<array.length; i++) {
-                    Array.set(obj, i, reader.read(array[i]));
-                }
+                Array.set(obj, (Integer) field, reader.read(diffMap.get(field)));
             } else {
-                Field f = clazz.getDeclaredField(fieldName);
+                Field f = clazz.getDeclaredField((String) field);
                 f.setAccessible(true);
-                f.set(obj, reader.read(diffMap.get(fieldName)));
+                f.set(obj, reader.read(diffMap.get(field)));
             }
         }
     }
