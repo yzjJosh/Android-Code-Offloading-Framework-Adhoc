@@ -24,7 +24,7 @@ import mobilecloud.api.Request;
 import mobilecloud.api.Response;
 import mobilecloud.client.Client;
 import mobilecloud.client.SocketBuilder;
-import mobilecloud.utils.ClassUtils;
+import mobilecloud.utils.IOUtils;
 
 public class ClientTest {
     
@@ -53,7 +53,7 @@ public class ClientTest {
     public void testRequestSuccess() throws Exception {
         Request req = new TestRequest().setIp("192.168.0.1").setPort(80);
         Response resp = new TestResponse().setSuccess(true);
-        InputStream is = ClassUtils.toInputStream(resp);
+        InputStream is = IOUtils.toInputStream(resp);
         OutputStream os = new ByteArrayOutputStream();
         Mockito.when(socket.getInputStream()).thenReturn(is);
         Mockito.when(socket.getOutputStream()).thenReturn(os);
@@ -66,7 +66,7 @@ public class ClientTest {
     public void testRequestFails() throws Exception {
         Request req = new TestRequest().setIp("192.168.0.1").setPort(80);
         Response resp = new TestResponse().setSuccess(false).setThrowable(new NullPointerException());
-        InputStream is = ClassUtils.toInputStream(resp);
+        InputStream is = IOUtils.toInputStream(resp);
         OutputStream os = new ByteArrayOutputStream();
         Mockito.when(socket.getInputStream()).thenReturn(is);
         Mockito.when(socket.getOutputStream()).thenReturn(os);
@@ -83,7 +83,7 @@ public class ClientTest {
         Mockito.when(socket.getInputStream()).thenAnswer(new Answer<InputStream>() {
             @Override
             public InputStream answer(InvocationOnMock invocation) throws Throwable {
-                return ClassUtils.toInputStream(resp);
+                return IOUtils.toInputStream(resp);
             }
         });
         Mockito.when(socket.getOutputStream()).thenAnswer(new Answer<OutputStream>() {

@@ -1,37 +1,42 @@
 package mobilecloud.api;
 
-import java.util.List;
+import java.util.Map;
+
+import mobilecloud.objs.ObjDiff;
+import mobilecloud.objs.Token;
 
 public class RemoteInvocationResponse extends Response {
     private static final long serialVersionUID = 1L;
-    private byte[] returnValueData;
-    private byte[] invokerData;
-    private List<byte[]> argsData;
 
-    public byte[] getReturnValueData() {
-        return returnValueData;
+    private Map<Integer, ObjDiff> diffs;
+    private Token token;
+    private Object returnVal;
+
+    public Map<Integer, ObjDiff> getDiffs() {
+        return diffs;
     }
 
-    public RemoteInvocationResponse setReturnValueData(byte[] returnValueData) {
-        this.returnValueData = returnValueData;
+    public RemoteInvocationResponse setDiffs(Map<Integer, ObjDiff> diffs) {
+        this.diffs = diffs;
         return this;
     }
 
-    public byte[] getInvokerData() {
-        return invokerData;
+    public Token getToken() {
+        return token;
     }
 
-    public RemoteInvocationResponse setInvokerData(byte[] invokerData) {
-        this.invokerData = invokerData;
+    public RemoteInvocationResponse setToken(Token token) {
+        this.token = token;
         return this;
     }
 
-    public List<byte[]> getArgsData() {
-        return argsData;
+    public Object getReturnVal() {
+        return returnVal;
     }
 
-    public RemoteInvocationResponse setArgsData(List<byte[]> argsData) {
-        this.argsData = argsData;
+    public RemoteInvocationResponse setReturnVal(Object returnVal) {
+        this.returnVal = returnVal;
         return this;
     }
+
 }

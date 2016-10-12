@@ -8,10 +8,9 @@ import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
 
-import mobilecloud.objs.Config;
-import mobilecloud.objs.FieldReader;
-import mobilecloud.objs.FieldValue;
 import mobilecloud.objs.ObjDiff;
+import mobilecloud.objs.field.FieldReader;
+import mobilecloud.objs.field.FieldValue;
 
 public class ObjDiffTest {
     
@@ -42,7 +41,7 @@ public class ObjDiffTest {
     
     @Test
     public void test0 () throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
-        Map<String, FieldValue> transform = new HashMap<>();
+        Map<Object, FieldValue> transform = new HashMap<>();
         transform.put("o", FieldValue.newValue("Hello World"));
         transform.put("i", FieldValue.newValue(101));
         diff = new ObjDiff(transform);
@@ -56,7 +55,7 @@ public class ObjDiffTest {
     public void test1() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
         TestClass t = new TestClass();
         t.o = new Object();
-        Map<String, FieldValue> transform = new HashMap<>();
+        Map<Object, FieldValue> transform = new HashMap<>();
         transform.put("o", FieldValue.newValue(null));
         diff = new ObjDiff(transform);
         diff.apply(t, reader);
@@ -66,7 +65,7 @@ public class ObjDiffTest {
     @Test
     public void test2()
             throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
-        Map<String, FieldValue> transform = new HashMap<>();
+        Map<Object, FieldValue> transform = new HashMap<>();
         transform.put("o", FieldValue.newObjectId(2));
         diff = new ObjDiff(transform);
         diff.apply(objs[0], reader);
@@ -75,10 +74,11 @@ public class ObjDiffTest {
     
     @Test
     public void test3() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
-        Map<String, FieldValue> transform = new HashMap<>();
+        Map<Object, FieldValue> transform = new HashMap<>();
         Object obj2 = objs[2];
-        transform.put(Config.ARRAY_ENTRY_NAME, FieldValue.newArray(new FieldValue[] { FieldValue.newObjectId(2),
-                FieldValue.newValue("test"), FieldValue.newValue(null) }));
+        transform.put(0, FieldValue.newObjectId(2));
+        transform.put(1, FieldValue.newValue("test"));
+        transform.put(2, FieldValue.newValue(null));
         diff = new ObjDiff(transform);
         diff.apply(objs, reader);
         assertEquals(obj2, objs[0]);

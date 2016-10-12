@@ -1,27 +1,11 @@
 package mobilecloud.utils;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.net.Inet4Address;
-import java.net.Inet6Address;
-import java.net.InetSocketAddress;
-import java.net.URI;
-import java.net.URL;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 /**
  * Utility functions about classes
@@ -105,60 +89,13 @@ public class ClassUtils {
     public static boolean isBasicType(Class<?> clazz) {
         return clazz.isEnum() || clazz.isPrimitive() || knownBasicTypes.contains(clazz);
     }
-    
-    /**
-     * Serialize an object to byte array
-     * @param obj the object
-     * @return the byte array
-     * @throws IOException if cannot serialize it
-     */
-    public static byte[] toBytesArray(Object obj) throws IOException {
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
-        ObjectOutputStream out = new ObjectOutputStream(os);
-        out.writeObject(obj);
-        out.flush();
-        out.close();
-        return os.toByteArray();
-    }
-    
-    /**
-     * Convert an object to an input stream
-     * @param obj the object
-     * @return the input stream
-     * @throws IOException if convertion fails
-     */
-    public static InputStream toInputStream(Object obj) throws IOException {
-        return new ByteArrayInputStream(toBytesArray(obj));
-    }
-    
-    /**
-     * Read object from byte data
-     * @param data the object data
-     * @param cl the class loader to load class
-     * @return the deserialized object
-     * @throws SecurityException
-     * @throws IOException
-     * @throws ClassNotFoundException if cannot load the class
-     */
-    public static Object readObject(byte[] data, ClassLoader cl) throws SecurityException, IOException, ClassNotFoundException {
-        ObjectInputStream is = new AdvancedObjectInputStream(new ByteArrayInputStream(data), cl);
-        try {
-            return is.readObject();
-        } finally {
-            is.close();
-        }
-    }
-    
-    /**
-     * Read object from byte data
-     * @param data the object data
-     * @return the deserialized data
-     * @throws SecurityException
-     * @throws ClassNotFoundException if cannot load the class
-     * @throws IOException
-     */
-    public static Object readObject(byte[] data) throws SecurityException, ClassNotFoundException, IOException {
-        return readObject(data, ClassLoader.getSystemClassLoader());
-    }
 
+    /**
+     * Check if a class is an array of primitive types
+     * @param clazz the class to check
+     * @return if it is primitive array
+     */
+    public static boolean isPrimitiveArray(Class<?> clazz) {
+        return clazz.isArray() && clazz.getComponentType().isPrimitive();
+    }
 }

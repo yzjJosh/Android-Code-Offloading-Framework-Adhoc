@@ -3,10 +3,9 @@ package mobilecloud.engine;
 import java.io.IOException;
 import java.io.Serializable;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.List;
 
 import android.content.Context;
+import mobilecloud.api.Invocation;
 import mobilecloud.api.RemoteInvocationRequest;
 import mobilecloud.api.RemoteInvocationResponse;
 import mobilecloud.api.Request;
@@ -18,10 +17,11 @@ import mobilecloud.engine.host.monitor.HostMonitor;
 import mobilecloud.engine.host.monitor.HostStatusChangeListener;
 import mobilecloud.engine.schedular.Schedular;
 import mobilecloud.objs.ObjectMigrator;
+import mobilecloud.objs.Token;
 import mobilecloud.server.NoApplicationExecutableException;
 import mobilecloud.server.handler.upload.DuplicateExecutableException;
 import mobilecloud.utils.ByteProvider;
-import mobilecloud.utils.ClassUtils;
+import mobilecloud.utils.IOUtils;
 
 /**
  * The cloud compute engine
@@ -180,14 +180,15 @@ public class Engine {
 
         // Record object meta data
         ObjectMigrator migrator = new ObjectMigrator();
-        migrator.moveOut(invoker);
+        migrator.migrate(invoker);
         for (Object arg : args) {
-            migrator.moveOut(arg);
+            migrator.migrate(arg);
         }
 
         try {
             // Build a request
-            RemoteInvocationRequest request = buildInvocationRequest(host.ip, host.port, method, invoker, args);
+            RemoteInvocationRequest request = buildInvocationRequest(host.ip, host.port, method, invoker, args,
+                    migrator.takeToken().expand());
 
             // Send the request
             Response resp = client.request(request);
@@ -213,44 +214,27 @@ public class Engine {
 
             // Synchronize objects
             RemoteInvocationResponse invocResp = (RemoteInvocationResponse) resp;
-            byte[] invokerData = invocResp.getInvokerData();
-            List<byte[]> argsData = invocResp.getArgsData();
-
-            // If the data has been changed, sync them
-            if (invokerData != null) {
-                migrator.sync(ClassUtils.readObject(invokerData));
-            }
-
-            for (byte[] argData : argsData) {
-                if (argData != null) {
-                    migrator.sync(ClassUtils.readObject(argData));
-                }
-            }
+            migrator.sync(invocResp.getToken(), invocResp.getDiffs());
             
-            return migrator.sync(ClassUtils.readObject(invocResp.getReturnValueData()));
+            return migrator.getObject(invocResp.getReturnVal());
         } catch (Throwable t) {
             throw new RemoteExecutionFailedException("Remote execution fails!", t);
-        } finally {
-            // In case of exception, put back objects
-            migrator.joinObjects();
         }
     }
 
     // Construct a remote invocation request
     private RemoteInvocationRequest buildInvocationRequest(String ip, int port, Method method, Object invoker,
-            Object[] args) throws IOException {
+            Object[] args, Token token) throws IOException {
         RemoteInvocationRequest request = new RemoteInvocationRequest();
         request.setApplicationId(appName()).setClazzName(method.getDeclaringClass().getName())
-                .setMethodName(method.getName()).setInvokerData(ClassUtils.toBytesArray(invoker))
-                .setIp(ip).setPort(port);
+                .setMethodName(method.getName()).setIp(ip).setPort(port);
         Class<?>[] params = method.getParameterTypes();
-        List<byte[]> argsData = new ArrayList<>(params.length);
         String[] argTypes = new String[params.length];
         for (int i = 0; i < params.length; i++) {
             argTypes[i] = params[i].getName();
-            argsData.add(ClassUtils.toBytesArray(args[i]));
         }
-        request.setArgTypesName(argTypes).setArgsData(argsData);
+        Invocation invocation = new Invocation().setToken(token).setInvoker(invoker).setArgs(args);
+        request.setArgTypesName(argTypes).setInvocationData(IOUtils.toBytesArray(invocation));
         return request;
     }
     
