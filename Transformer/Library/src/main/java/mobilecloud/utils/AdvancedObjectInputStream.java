@@ -11,12 +11,17 @@ import java.io.ObjectStreamClass;
  */
 public class AdvancedObjectInputStream extends ObjectInputStream {
     
-    private final ClassLoader cl;
+    private ClassLoader cl;
 
-    protected AdvancedObjectInputStream(InputStream is, ClassLoader cl)
-            throws IOException, SecurityException {
+    public AdvancedObjectInputStream(InputStream is)
+            throws IOException {
         super(is);
-        this.cl = cl;
+        this.cl = ClassLoader.getSystemClassLoader();
+    }
+    
+    public AdvancedObjectInputStream setClassLoader(ClassLoader loader) {
+        this.cl = loader;
+        return this;
     }
     
     @Override

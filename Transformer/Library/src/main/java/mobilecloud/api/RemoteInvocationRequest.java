@@ -1,5 +1,7 @@
 package mobilecloud.api;
 
+import mobilecloud.objs.Token;
+
 public class RemoteInvocationRequest extends Request {
     private static final long serialVersionUID = 1L;
     
@@ -7,7 +9,9 @@ public class RemoteInvocationRequest extends Request {
     private String clazzName;
     private String methodName;
     private String[] argTypesName;
-    private byte[] invocationData;
+    private Object invoker;
+    private Object[] args;
+    private Token token;
 
     public String getApplicationId() {
         return applicationId;
@@ -45,12 +49,30 @@ public class RemoteInvocationRequest extends Request {
         return this;
     }
 
-    public byte[] getInvocationData() {
-        return invocationData;
+    public Object getInvoker() {
+        return invoker;
     }
 
-    public RemoteInvocationRequest setInvocationData(byte[] invocationData) {
-        this.invocationData = invocationData;
+    public RemoteInvocationRequest setInvoker(Object invoker) {
+        this.invoker = invoker;
+        return this;
+    }
+
+    public Object[] getArgs() {
+        return args;
+    }
+
+    public RemoteInvocationRequest setArgs(Object[] args) {
+        this.args = args;
+        return this;
+    }
+
+    public Token getToken() {
+        return token;
+    }
+
+    public RemoteInvocationRequest setToken(Token token) {
+        this.token = token;
         return this;
     }
     

@@ -7,7 +7,6 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Map;
 
-import mobilecloud.api.Invocation;
 import mobilecloud.api.RemoteInvocationRequest;
 import mobilecloud.api.RemoteInvocationResponse;
 import mobilecloud.api.Request;
@@ -21,7 +20,6 @@ import mobilecloud.server.ExecutableLoader;
 import mobilecloud.server.NoApplicationExecutableException;
 import mobilecloud.server.handler.Handler;
 import mobilecloud.utils.ClassUtils;
-import mobilecloud.utils.IOUtils;
 
 /**
  * A class which handles remote invocation requests
@@ -55,7 +53,6 @@ public class RemoteInvocationHandler implements Handler {
         try {
             
             // Prepare data
-            Invocation invocation = (Invocation) IOUtils.readObject(invocReq.getInvocationData(), loader);
             Class<?> declareClazz = ClassUtils.loadClass(loader, invocReq.getClazzName());
             String[] argTypesName = invocReq.getArgTypesName();
             Class<?>[] argTypes = new Class<?>[argTypesName.length];
@@ -65,12 +62,12 @@ public class RemoteInvocationHandler implements Handler {
             Method method = declareClazz.getDeclaredMethod(invocReq.getMethodName(), argTypes);
             
             // Take first snap shot
-            Token token = invocation.getToken();
+            Token token = invocReq.getToken();
             SnapShot snapShotOnReceiving = token.takeSnapShot();
             
             // Invoke the method
             method.setAccessible(true);
-            Object ret = method.invoke(invocation.getInvoker(), invocation.getArgs());
+            Object ret = method.invoke(invocReq.getInvoker(), invocReq.getArgs());
             
             // Add return value to token
             if(ret != null && !ClassUtils.isBasicType(ret.getClass())) {

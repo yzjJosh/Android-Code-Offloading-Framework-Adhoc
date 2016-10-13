@@ -24,7 +24,10 @@ import mobilecloud.api.Request;
 import mobilecloud.api.Response;
 import mobilecloud.client.Client;
 import mobilecloud.client.SocketBuilder;
+import mobilecloud.client.deliverer.Deliverer;
 import mobilecloud.utils.IOUtils;
+import mobilecloud.utils.ObjectInputStreamWrapper;
+import mobilecloud.utils.ObjectOutputStreamWrapper;
 
 public class ClientTest {
     
@@ -34,6 +37,18 @@ public class ClientTest {
     
     private static class TestResponse extends Response {
         private static final long serialVersionUID = 1L;
+    }
+    
+    private static class TestRequestDeliverer implements Deliverer {
+
+        @Override
+        public void deliver(Request request, ObjectInputStreamWrapper is, ObjectOutputStreamWrapper os)
+                throws Exception {
+            os.get().writeObject(request);
+            os.get().flush();
+        }
+
+        
     }
     
     private Socket socket;
@@ -47,6 +62,7 @@ public class ClientTest {
         Mockito.when(builder.build(Matchers.anyString(), Matchers.anyInt(), Matchers.anyInt())).thenReturn(socket);
         
         client = new Client(builder, 100, 2000);
+        client.registerDeliverer(TestRequest.class.getName(), new TestRequestDeliverer());
     }
 
     @Test
@@ -74,6 +90,12 @@ public class ClientTest {
         Response res = client.request(req);
         assertFalse(res.isSuccess());
         assertTrue(res.getThrowable() instanceof NullPointerException);
+    }
+    
+    @Test(expected = IllegalArgumentException.class)
+    public void testNoDevilerer() throws Exception {
+        Request req = new Request() { private static final long serialVersionUID = 1L; };
+        client.request(req);
     }
     
     @Test(timeout = 10000)

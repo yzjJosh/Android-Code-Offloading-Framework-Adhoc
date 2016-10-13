@@ -1,12 +1,21 @@
 package mobilecloud.client;
 
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
+import mobilecloud.api.MonitorHostRequest;
+import mobilecloud.api.RemoteInvocationRequest;
 import mobilecloud.api.Request;
 import mobilecloud.api.Response;
+import mobilecloud.api.UploadApplicationExecutableRequest;
+import mobilecloud.client.deliverer.Deliverer;
+import mobilecloud.client.deliverer.MonitorHostRequestDeliverer;
+import mobilecloud.client.deliverer.RemoteInvocationRequestDeliverer;
+import mobilecloud.client.deliverer.UploadApplicationExecutableRequestDeliverer;
 import mobilecloud.engine.host.Host;
+import mobilecloud.utils.ObjectInputStreamWrapper;
+import mobilecloud.utils.ObjectOutputStreamWrapper;
 
 /**
  * A client which interacts with server
@@ -19,11 +28,29 @@ public class Client {
     private final SocketBuilder builder;
     private final TimerKeyLock lock;
     private final int conenctionTimeOut;
+    private final Map<String, Deliverer> deliverers;
     
     public Client(SocketBuilder builder, int minRequestInterval, int conenctionTimeOut) {
         this.builder = builder;
         this.lock = new TimerKeyLock(minRequestInterval);
         this.conenctionTimeOut = conenctionTimeOut;
+        this.deliverers = new ConcurrentHashMap<>();
+        
+        this.registerDeliverer(MonitorHostRequest.class.getName(), new MonitorHostRequestDeliverer());
+        this.registerDeliverer(RemoteInvocationRequest.class.getName(), new RemoteInvocationRequestDeliverer());
+        this.registerDeliverer(UploadApplicationExecutableRequest.class.getName(),
+                new UploadApplicationExecutableRequestDeliverer());
+    }
+    
+    /**
+     * Register a deliverer for a specific request type
+     * @param requestName the request name
+     * @param deliverer the deliverer to deliver request
+     * @return this client
+     */
+    public Client registerDeliverer(String requestName, Deliverer deliverer) {
+        this.deliverers.put(requestName, deliverer);
+        return this;
     }
     
     /**
@@ -33,6 +60,11 @@ public class Client {
      * @throws Exception if any problem occurs during the request
      */
     public Response request(Request request) throws Exception {
+        Deliverer deliverer = deliverers.get(request.getClass().getName());
+        if (deliverer == null) {
+            throw new IllegalArgumentException("No deliverer to handle " + request.getClass().getName());
+        }
+        
         Host host = new Host(request.getIp(), request.getPort());
         lock.lock(host);
         Socket socket = null;
@@ -42,11 +74,17 @@ public class Client {
             lock.unlock(host);
         }
         try {
-            ObjectOutputStream os = new ObjectOutputStream(socket.getOutputStream());
-            ObjectInputStream is = new ObjectInputStream(socket.getInputStream());
-            os.writeObject(request);
-            os.flush();
-            return (Response) is.readObject();
+            ObjectInputStreamWrapper is = new ObjectInputStreamWrapper(socket.getInputStream());
+            ObjectOutputStreamWrapper os = new ObjectOutputStreamWrapper(socket.getOutputStream());
+            
+            //Firstly send request type
+            os.get().writeObject(request.getClass().getName());
+            
+            //Then deliver request data
+            deliverer.deliver(request, is, os);
+            
+            //Get response
+            return (Response) is.get().readObject();
         } finally {
             socket.close();
         }

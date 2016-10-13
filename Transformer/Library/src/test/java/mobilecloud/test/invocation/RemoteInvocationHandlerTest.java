@@ -13,7 +13,6 @@ import org.mockito.AdditionalMatchers;
 import org.mockito.Matchers;
 import org.mockito.Mockito;
 
-import mobilecloud.api.Invocation;
 import mobilecloud.api.RemoteInvocationRequest;
 import mobilecloud.api.RemoteInvocationResponse;
 import mobilecloud.api.Response;
@@ -22,7 +21,6 @@ import mobilecloud.objs.Token;
 import mobilecloud.server.ExecutableLoader;
 import mobilecloud.server.NoApplicationExecutableException;
 import mobilecloud.server.handler.invocation.RemoteInvocationHandler;
-import mobilecloud.utils.IOUtils;
 
 public class RemoteInvocationHandlerTest {
     
@@ -90,9 +88,8 @@ public class RemoteInvocationHandlerTest {
             argTypes[i] = types[i].getName();
         }
         
-        Invocation invocation = new Invocation().setToken(token).setInvoker(invoker).setArgs(args);
         req.setApplicationId(appName).setClazzName(method.getDeclaringClass().getName()).setMethodName(method.getName())
-                .setArgTypesName(argTypes).setInvocationData(IOUtils.toBytesArray(invocation));
+                .setArgTypesName(argTypes).setToken(token).setInvoker(invoker).setArgs(args);
         return req;
     }
     

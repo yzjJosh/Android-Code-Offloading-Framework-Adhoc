@@ -33,6 +33,7 @@ import mobilecloud.server.ExecutableLoader;
 import mobilecloud.server.NoApplicationExecutableException;
 import mobilecloud.server.Server;
 import mobilecloud.utils.ByteProvider;
+import mobilecloud.utils.IOUtils;
 
 public class EngineTest {
     
@@ -188,12 +189,18 @@ public class EngineTest {
             @Override
             public Response answer(InvocationOnMock invocation) throws Throwable {
                 Request req = (Request) invocation.getArguments()[0];
+                req = (Request) IOUtils.readObject(IOUtils.toBytesArray(req));
                 if (req instanceof UploadApplicationExecutableRequest) {
                     UploadApplicationExecutableRequest up = (UploadApplicationExecutableRequest) req;
                     map.put(up.getApplicationId(), ClassLoader.getSystemClassLoader());
                     return new UploadApplicationExecutableResponse().setSuccess(true);
                 } else if (req instanceof RemoteInvocationRequest) {
-                    return server.serve(req);
+                    Response resp = server.serve(req);
+                    if(!resp.isSuccess() && resp.getThrowable() instanceof NoApplicationExecutableException) {
+                        throw resp.getThrowable();
+                    } else {
+                        return resp;
+                    }
                 }
                 return null;
             }

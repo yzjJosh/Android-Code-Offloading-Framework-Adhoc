@@ -15,7 +15,9 @@ public class StaticHostProvider implements HostProvider{
 
     @Override
     public List<Host> provide() {
-        return lists;
+        synchronized (StaticHostProvider.class) {
+            return lists;
+        }
     }
     
     /**
@@ -23,7 +25,9 @@ public class StaticHostProvider implements HostProvider{
      * @param host the host to add
      */
     public static void addHost(Host host) {
-        lists.add(host);
+        synchronized (StaticHostProvider.class) {
+            lists.add(host);
+        }
     }
     
 }

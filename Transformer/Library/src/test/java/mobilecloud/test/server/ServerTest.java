@@ -14,7 +14,6 @@ import org.mockito.Mockito;
 
 import mobilecloud.api.IllegalRequestResponse;
 import mobilecloud.api.InternalServerErrorResponse;
-import mobilecloud.api.Invocation;
 import mobilecloud.api.RemoteInvocationRequest;
 import mobilecloud.api.RemoteInvocationResponse;
 import mobilecloud.api.Request;
@@ -27,7 +26,6 @@ import mobilecloud.server.InternalServerError;
 import mobilecloud.server.NoApplicationExecutableException;
 import mobilecloud.server.Server;
 import mobilecloud.server.handler.Handler;
-import mobilecloud.utils.IOUtils;
 
 public class ServerTest {
     
@@ -83,9 +81,8 @@ public class ServerTest {
             argTypes[i] = types[i].getName();
         }
         
-        Invocation invocation = new Invocation().setToken(token).setInvoker(invoker).setArgs(args);
         req.setApplicationId(appName).setClazzName(method.getDeclaringClass().getName()).setMethodName(method.getName())
-                .setArgTypesName(argTypes).setInvocationData(IOUtils.toBytesArray(invocation));
+                .setArgTypesName(argTypes).setToken(token).setInvoker(invoker).setArgs(args);
         return req;
     }
     

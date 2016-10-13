@@ -82,9 +82,12 @@ public class ExecutableLoader {
                     classLoaders.put(applicationId, cl);
                 }
             }
-            throw new NoApplicationExecutableException();
         }
-        return cl;
+        if(cl == null) {
+            throw new NoApplicationExecutableException();
+        } else {
+            return cl;
+        }
     }
 
 }

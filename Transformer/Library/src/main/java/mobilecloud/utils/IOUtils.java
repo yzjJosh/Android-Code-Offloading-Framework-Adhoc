@@ -47,9 +47,11 @@ public class IOUtils {
      * @throws IOException
      * @throws ClassNotFoundException if cannot load the class
      */
+    @SuppressWarnings("resource")
     public static Object readObject(byte[] data, ClassLoader cl) throws SecurityException, IOException, ClassNotFoundException {
-        ObjectInputStream is = new AdvancedObjectInputStream(new ByteArrayInputStream(data), cl);
+        ObjectInputStream is = null;
         try {
+            is = new AdvancedObjectInputStream(new ByteArrayInputStream(data)).setClassLoader(cl);
             return is.readObject();
         } finally {
             is.close();

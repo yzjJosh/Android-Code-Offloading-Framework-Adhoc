@@ -5,7 +5,6 @@ import java.io.Serializable;
 import java.lang.reflect.Method;
 
 import android.content.Context;
-import mobilecloud.api.Invocation;
 import mobilecloud.api.RemoteInvocationRequest;
 import mobilecloud.api.RemoteInvocationResponse;
 import mobilecloud.api.Request;
@@ -21,7 +20,6 @@ import mobilecloud.objs.Token;
 import mobilecloud.server.NoApplicationExecutableException;
 import mobilecloud.server.handler.upload.DuplicateExecutableException;
 import mobilecloud.utils.ByteProvider;
-import mobilecloud.utils.IOUtils;
 
 /**
  * The cloud compute engine
@@ -191,17 +189,17 @@ public class Engine {
                     migrator.takeToken().expand());
 
             // Send the request
-            Response resp = client.request(request);
-
-            // If server does not have executable files, send it to server
-            if (!resp.isSuccess() && (resp.getThrowable() instanceof NoApplicationExecutableException)) {
-
-                // Upload apk file
-                uploadAPK(host);
-
-                // Retry this request
+            Response resp = null; 
+            try {
                 resp = client.request(request);
+            } catch (NoApplicationExecutableException e) {
+                // If server does not have executable files, send it to server
+                
+                uploadAPK(host); // Upload apk file
+                
+                resp = client.request(request); // Retry this request
             }
+
 
             // If execution fails, throw an exception
             if (!resp.isSuccess()) {
@@ -227,14 +225,14 @@ public class Engine {
             Object[] args, Token token) throws IOException {
         RemoteInvocationRequest request = new RemoteInvocationRequest();
         request.setApplicationId(appName()).setClazzName(method.getDeclaringClass().getName())
-                .setMethodName(method.getName()).setIp(ip).setPort(port);
+                .setMethodName(method.getName()).setToken(token).setInvoker(invoker).setArgs(args).setIp(ip)
+                .setPort(port);
         Class<?>[] params = method.getParameterTypes();
         String[] argTypes = new String[params.length];
         for (int i = 0; i < params.length; i++) {
             argTypes[i] = params[i].getName();
         }
-        Invocation invocation = new Invocation().setToken(token).setInvoker(invoker).setArgs(args);
-        request.setArgTypesName(argTypes).setInvocationData(IOUtils.toBytesArray(invocation));
+        request.setArgTypesName(argTypes);
         return request;
     }
     
