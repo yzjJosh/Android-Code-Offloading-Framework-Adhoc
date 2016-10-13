@@ -22,7 +22,7 @@ public class MainActivity extends AppCompatActivity {
 
         // Set server ip and port
         StaticHostProvider.addHost(new Host("127.0.0.1", 50382));
-        StaticHostProvider.addHost(new Host("192.168.0.23", 50382));
+   //     StaticHostProvider.addHost(new Host("192.168.0.23", 50382));
 
         new MatMultiplyThread().start();
     }
@@ -31,9 +31,9 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void run() {
             while(true) {
-                int m = 50 + (int) (Math.random() * 25 - 15);
-                int n = 1000 + (int) (Math.random() * 500 - 300);
-                int k = 1000 + (int) (Math.random() * 500 - 300);
+                int m = 500 + (int) (Math.random() * 250 - 150);
+                int n = 500 + (int) (Math.random() * 250 - 150);
+                int k = 500 + (int) (Math.random() * 250 - 150);
                 int[][] mat1 = MatrixMultiply.randMat(m, k);
                 int[][] mat2 = MatrixMultiply.randMat(k, n);
                 Log.e(TAG, "Start multiplying matrix " + m + "x" + k + " and matrix " + k + "x" + n);

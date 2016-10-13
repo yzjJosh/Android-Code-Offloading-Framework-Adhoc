@@ -69,10 +69,6 @@ public class MatrixMultiply {
 
         private static final String TAG = Worker.class.getSimpleName();
 
-        private boolean isNew = true;
-        private boolean isOnServer = Engine.isOnCloud();
-        private int id = System.identityHashCode(this);
-
         private int[][] res;
         private int[][] rows;
         private int[][] cols;
@@ -89,13 +85,13 @@ public class MatrixMultiply {
             try {
                 Method method = Worker.class.getMethod("call");
                 if(Engine.getInstance().shouldMigrate(method, this)) {
-    //                Log.d(TAG, "Calculating row remotely ...");
+                    Log.d(TAG, "Calculating row remotely ...");
                     return (int[][]) Engine.getInstance().invokeRemotely(method, this);
                 }
             } catch (Exception e) {
                 e.printStackTrace();
             }
-   //         Log.d(TAG, "Calculating row locally ...");
+            Log.d(TAG, "Calculating row locally ...");
             for(int i=0; i<rows.length; i++) {
                 for(int j=0; j<cols.length; j++) {
                     res[i][j] = multiplyVector(rows[i], cols[j]);
