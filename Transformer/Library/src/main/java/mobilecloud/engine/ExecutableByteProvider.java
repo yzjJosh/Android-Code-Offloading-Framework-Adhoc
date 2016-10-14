@@ -1,20 +1,21 @@
 package mobilecloud.engine;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 
 import org.zeroturnaround.zip.NameMapper;
 import org.zeroturnaround.zip.ZipUtil;
 
 import android.content.Context;
-import mobilecloud.utils.ByteProvider;
 import mobilecloud.utils.FileUtils;
 
 /**
  * A provider that can provide executable bytes
  *
  */
-public class ExecutableByteProvider implements ByteProvider{
+public class ExecutableByteProvider {
     
     private Context context;
     
@@ -33,8 +34,7 @@ public class ExecutableByteProvider implements ByteProvider{
     /**
      * provide executable data
      */
-    @Override
-    public synchronized byte[] provide() {
+    public synchronized InputStream provide() {
         try {
             if(!new File(getExecutableFilePath()).exists()) {
                 FileUtils.createDirIfDoesNotExist(getTempOutputDir());
@@ -42,7 +42,7 @@ public class ExecutableByteProvider implements ByteProvider{
                 ZipUtil.pack(new File(getTempOutputDir()), new File(getExecutableFilePath()));
                 FileUtils.deleteFolder(getTempOutputDir());
             }
-            return FileUtils.readBytes(getExecutableFilePath());
+            return new FileInputStream(getExecutableFilePath());
         } catch (IOException e) {
             e.printStackTrace();
             return null;

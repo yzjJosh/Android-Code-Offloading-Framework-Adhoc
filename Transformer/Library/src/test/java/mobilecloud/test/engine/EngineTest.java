@@ -2,6 +2,8 @@ package mobilecloud.test.engine;
 
 import static org.junit.Assert.*;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -26,14 +28,16 @@ import mobilecloud.api.UploadApplicationExecutableRequest;
 import mobilecloud.api.UploadApplicationExecutableResponse;
 import mobilecloud.client.Client;
 import mobilecloud.engine.Engine;
+import mobilecloud.engine.ExecutableByteProvider;
 import mobilecloud.engine.RemoteExecutionFailedException;
 import mobilecloud.engine.host.Host;
+import mobilecloud.engine.host.monitor.HostMonitor;
+import mobilecloud.engine.host.monitor.HostStatusChangeListener;
 import mobilecloud.engine.schedular.Schedular;
 import mobilecloud.lib.DefaultRemoteExecutionListener;
 import mobilecloud.server.ExecutableLoader;
 import mobilecloud.server.NoApplicationExecutableException;
 import mobilecloud.server.Server;
-import mobilecloud.utils.ByteProvider;
 import mobilecloud.utils.IOUtils;
 
 public class EngineTest {
@@ -210,15 +214,20 @@ public class EngineTest {
         Context context = Mockito.mock(Context.class);
         Mockito.when(context.getPackageName()).thenReturn(AppName);
         
-        ByteProvider apk = new ByteProvider() {
+        ExecutableByteProvider apk = Mockito.mock(ExecutableByteProvider.class);
+        Mockito.when(apk.provide()).thenAnswer(new Answer<InputStream>(){
             @Override
-            public byte[] provide() {
-                return null;
+            public InputStream answer(InvocationOnMock invocation) throws Throwable {
+                return new ByteArrayInputStream(new byte[0]);
             }
-        };
+        });
 
-        Engine.localInit(context, null);
-        engine = new Engine(context, client, schedular, apk);
+        HostMonitor monitor = Mockito.mock(HostMonitor.class);
+        Mockito.when(monitor.withHostStatusChangeListener(Matchers.any(HostStatusChangeListener.class)))
+                .thenCallRealMethod();
+        
+        Engine.localInit(context);
+        engine = new Engine(context, client, schedular, apk, monitor);
         
         add = List.class.getMethod("add", int.class);
         remove = List.class.getMethod("remove", int.class);

@@ -5,6 +5,7 @@ import org.gradle.api.Project;
 import com.github.stephanenicolas.morpheus.AbstractMorpheusPlugin;
 
 import javassist.build.IClassTransformer;
+import transformer.ContextTransformer;
 import transformer.RemoteMethodTransformer;
 
 public class TransformerPlugin extends AbstractMorpheusPlugin {
@@ -21,7 +22,7 @@ public class TransformerPlugin extends AbstractMorpheusPlugin {
 
     @Override
     public IClassTransformer[] getTransformers(Project project) {
-        return new IClassTransformer[] { new RemoteMethodTransformer() };
+        return new IClassTransformer[] { new RemoteMethodTransformer(), new ContextTransformer() };
     }
 
 }

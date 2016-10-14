@@ -21,7 +21,7 @@ import mobilecloud.objs.ObjectMigrator;
 import mobilecloud.objs.Token;
 import mobilecloud.server.NoApplicationExecutableException;
 import mobilecloud.server.handler.upload.DuplicateExecutableException;
-import mobilecloud.utils.ByteProvider;
+import mobilecloud.utils.IOUtils;
 
 /**
  * The cloud compute engine
@@ -53,34 +53,11 @@ public class Engine {
      * @param monitor
      *            the Monitor which is used to monitor server hosts
      */
-    public static void localInit(Context ctxt, HostMonitor monitor) {
+    public static void localInit(Context ctxt) {
         onCloud = false;
         context = ctxt;
-        if(monitor != null) {
-            //monitor is provided, start the monitor
-            monitor.withHostStatusChangeListener(new HostStatusChangeListener() {
-                @Override
-                public void onHostStatusChange(Host host, boolean isAlive) {
-                    if (isAlive) {
-                        Schedular.getInstance().addHost(host);
-                    } else {
-                        Schedular.getInstance().removeHost(host);
-                    }
-                }
-            }).start();
-        }
     }
 
-    /**
-     * Initialize local environment with Android Context and the default host
-     * monitor
-     * 
-     * @param ctxt
-     *            the Android application context
-     */
-    public static void localInit(Context ctxt) {
-        localInit(ctxt, HostMonitor.getInstance());
-    }
 
     /**
      * Test if current environment is on cloud or not
@@ -116,14 +93,43 @@ public class Engine {
     private final Context ctx;
     private final Client client;
     private final Schedular schedular;
-    private final ByteProvider executableProvider;
+    private final ExecutableByteProvider executableProvider;
+    private final HostMonitor hostMonitor;
+    
+    public Engine() {
+        if(!isOnCloud()) {
+            throw new IllegalStateException("This constructor is only for cloud environment");
+        }
+        this.ctx = null;
+        this.client = null;
+        this.schedular = null;
+        this.executableProvider = null;
+        this.hostMonitor = null;
+    }
 
-    public Engine(Context context, Client client, Schedular schedular, ByteProvider executableProvider) {
+    public Engine(Context context, Client client, Schedular schedular, ExecutableByteProvider executableProvider, HostMonitor hostMonitor) {
+        if(isOnCloud()) {
+            throw new IllegalStateException("This constructor is only for local environment.");
+        }
         this.ctx = context;
         this.schedular = schedular;
         this.client = client;
         this.executableProvider = executableProvider;
+        this.hostMonitor = hostMonitor;
 
+        // Start running host monitor
+        this.hostMonitor.withHostStatusChangeListener(new HostStatusChangeListener() {
+            @Override
+            public void onHostStatusChange(Host host, boolean isAlive) {
+                if(isAlive) {
+                    Engine.this.schedular.addHost(host);
+                } else {
+                    Engine.this.schedular.removeHost(host);
+                }
+                
+            }
+        }).start();
+        
         // Add local host to this schedular, so that schedular can schedule
         // local host to invoke a method.
         this.schedular.addHost(new LocalHost());
@@ -262,7 +268,8 @@ public class Engine {
     //Upload apk file to a host
     private void uploadAPK(Host host) throws Throwable {
         Request req = new UploadApplicationExecutableRequest().setApplicationId(appName())
-                .setExecutable(executableProvider.provide()).setIp(host.ip).setPort(host.port);
+                .setExecutable(IOUtils.inputStreamToByteArray(executableProvider.provide())).setIp(host.ip)
+                .setPort(host.port);
         Response resp = client.request(req);
         if (!resp.isSuccess() && !(resp.getThrowable() instanceof DuplicateExecutableException)) {
             throw resp.getThrowable();
@@ -278,7 +285,12 @@ public class Engine {
         if (engine == null) {
             synchronized (Engine.class) {
                 if (engine == null) {
-                    engine = new Engine(context, Client.getInstance(), Schedular.getInstance(), new ExecutableByteProvider(context));
+                    if(isOnCloud()) {
+                        engine = new Engine();
+                    } else {
+                        engine = new Engine(context, Client.getInstance(), Schedular.getInstance(),
+                                new ExecutableByteProvider(context), HostMonitor.getInstance());
+                    }
                 }
             }
         }

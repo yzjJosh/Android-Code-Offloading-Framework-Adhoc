@@ -4,9 +4,6 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.util.Log;
 
-import java.lang.reflect.Method;
-
-import mobilecloud.engine.Engine;
 import mobilecloud.engine.host.Host;
 import mobilecloud.engine.host.provider.StaticHostProvider;
 import mobilecloud.lib.Remote;
@@ -20,9 +17,6 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        // Initialize engine
-        Engine.localInit(this);
 
         // Set server ip and port
         StaticHostProvider.addHost(new Host("127.0.0.1", 50382));

@@ -15,7 +15,6 @@ import javassist.build.IClassTransformer;
 import javassist.build.JavassistBuildException;
 import mobilecloud.engine.Engine;
 import mobilecloud.engine.RemoteExecutionAbortedException;
-import mobilecloud.engine.RemoteExecutionFailedException;
 import mobilecloud.lib.Remote;
 import mobilecloud.lib.RemoteExecutionListener;
 import mobilecloud.utils.ClassUtils;

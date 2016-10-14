@@ -1,5 +1,6 @@
 package mobilecloud.utils;
 
+import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -48,7 +49,7 @@ public class IOUtils {
      * @throws ClassNotFoundException if cannot load the class
      */
     @SuppressWarnings("resource")
-    public static Object readObject(byte[] data, ClassLoader cl) throws SecurityException, IOException, ClassNotFoundException {
+    public static Object readObject(byte[] data, ClassLoader cl) throws IOException, ClassNotFoundException {
         ObjectInputStream is = null;
         try {
             is = new AdvancedObjectInputStream(new ByteArrayInputStream(data)).setClassLoader(cl);
@@ -66,7 +67,31 @@ public class IOUtils {
      * @throws ClassNotFoundException if cannot load the class
      * @throws IOException
      */
-    public static Object readObject(byte[] data) throws SecurityException, ClassNotFoundException, IOException {
+    public static Object readObject(byte[] data) throws ClassNotFoundException, IOException {
         return readObject(data, ClassLoader.getSystemClassLoader());
+    }
+    
+    /**
+     * Read bytes from an input stream
+     * @param in the input stream
+     * @return bytes
+     * @throws IOException
+     */
+    public static byte[] inputStreamToByteArray(InputStream in) throws IOException {
+        BufferedInputStream is = null;
+        try {
+            is = new BufferedInputStream(in);
+            ByteArrayOutputStream arrayOs = new ByteArrayOutputStream();
+            byte[] buffer = new byte[1<<16];
+            int count = 0;
+            while((count = is.read(buffer)) != -1) {
+                arrayOs.write(buffer, 0, count);
+            }
+            return arrayOs.toByteArray();
+        } finally {
+            if(is != null) {
+                is.close();
+            }
+        }
     }
 }

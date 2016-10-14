@@ -4,7 +4,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 
-import mobilecloud.engine.Engine;
 import mobilecloud.engine.host.Host;
 import mobilecloud.engine.host.provider.StaticHostProvider;
 
@@ -17,12 +16,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Initialize engine
-        Engine.localInit(this);
-
         // Set server ip and port
         StaticHostProvider.addHost(new Host("127.0.0.1", 50382));
-   //     StaticHostProvider.addHost(new Host("192.168.0.23", 50382));
 
         new MatMultiplyThread().start();
     }
