@@ -37,3 +37,21 @@ repositories {
         url uri('../../../repo')
     }
 }
+
+// Import the custom gradle plugin.
+buildscript {
+    repositories {
+        // Find the plugin in local repository
+        maven {
+            url uri('../../../repo')
+        }
+        jcenter()
+    }
+
+    dependencies {
+        classpath group: 'Transformer', name: 'Plugin', version: '1.0'
+    }
+}
+
+// Apply the transformer plugin to transform the bytecode
+apply plugin: 'transform'

@@ -25,7 +25,7 @@ public class MainActivity extends Activity {
         Engine.localInit(this);
 
         // Set server ip and port
-        StaticHostProvider.addHost(new Host("192.168.0.11", 50382));
+        StaticHostProvider.addHost(new Host("127.0.0.1", 50382));
 
         new HelloWorldThread().start();
     }
@@ -37,7 +37,7 @@ public class MainActivity extends Activity {
             try {
                 while (true) {
                     long start = System.currentTimeMillis();
-                    String res = helloWorld();
+                    String res = helloWorld("Josh");
                     long end = System.currentTimeMillis();
                     Log.e(TAG, "helloWord() result is " + res + ", spending time is " + (end - start));
                     Thread.sleep(5000);
@@ -48,20 +48,9 @@ public class MainActivity extends Activity {
         }
     }
 
-
     @Remote
-    public static String helloWorld() {
-        try {
-            Method method = MainActivity.class.getMethod("helloWorld");
-            if(Engine.getInstance().shouldMigrate(method, null)) {
-                Log.e(TAG, "Running helloWorld remotely ...");
-                return (String) Engine.getInstance().invokeRemotely(method, null);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        Log.e(TAG, "Running helloWorld locally ...");
-        return "Hello World";
+    public static String helloWorld(String name) {
+        return "Hello World, " + name;
     }
 
 }

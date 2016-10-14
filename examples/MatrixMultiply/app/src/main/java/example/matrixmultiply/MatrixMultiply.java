@@ -3,8 +3,6 @@ package example.matrixmultiply;
 import android.util.Log;
 
 import java.io.Serializable;
-import java.lang.reflect.Method;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -12,7 +10,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import mobilecloud.engine.Engine;
 import mobilecloud.lib.Remote;
 
 public class MatrixMultiply {
@@ -82,16 +79,6 @@ public class MatrixMultiply {
         @Remote
         @Override
         public int[][] call() throws Exception {
-            try {
-                Method method = Worker.class.getMethod("call");
-                if(Engine.getInstance().shouldMigrate(method, this)) {
-                    Log.d(TAG, "Calculating row remotely ...");
-                    return (int[][]) Engine.getInstance().invokeRemotely(method, this);
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            Log.d(TAG, "Calculating row locally ...");
             for(int i=0; i<rows.length; i++) {
                 for(int j=0; j<cols.length; j++) {
                     res[i][j] = multiplyVector(rows[i], cols[j]);
@@ -102,12 +89,11 @@ public class MatrixMultiply {
 
         private int multiplyVector(int[] row, int[] col) {
             int res = 0;
-            for(int i=0; i<row.length; i++) {
+            for (int i = 0; i < row.length; i++) {
                 res += row[i] * col[i];
             }
             return res;
         }
-
     }
 
     public static int[][] randMat(int m, int n) {
