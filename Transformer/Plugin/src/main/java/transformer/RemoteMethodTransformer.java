@@ -14,7 +14,10 @@ import javassist.NotFoundException;
 import javassist.build.IClassTransformer;
 import javassist.build.JavassistBuildException;
 import mobilecloud.engine.Engine;
+import mobilecloud.engine.RemoteExecutionFailedException;
 import mobilecloud.lib.Remote;
+import mobilecloud.lib.RemoteExecutionListener;
+import mobilecloud.utils.ClassUtils;
 
 public class RemoteMethodTransformer implements IClassTransformer {
     
@@ -74,22 +77,59 @@ public class RemoteMethodTransformer implements IClassTransformer {
         String reflectionMethodVarName = "__method__";
         code.append("    " + Method.class.getName() + " " + reflectionMethodVarName + " = "
                 + generateGetDeclaredMethodCall(method) + ";\n");
+        
+        //     Object[] __args__ = new Object[]{name};
+        String argsVarName = "__args__";
+        code.append("    Object[] " + argsVarName + " = " + generateCreateArgsStatement(method) + ";\n");
 
-        //     if(mobilecode.engine.Engine.getInstance().shouldMigrate(__method__, this, name) {
-        code.append("    if(" + generateShouldMigrateCall(reflectionMethodVarName, method) + ") {\n");
+        //     if(mobilecode.engine.Engine.getInstance().shouldMigrate(__method__, this, __args__) {
+        code.append("    if(" + generateShouldMigrateCall(reflectionMethodVarName, argsVarName, method) + ") {\n");
 
-        //         Object __result__ = mobilecode.engine.Engine.getInstance().invokeRemotely(__method__, this, name);
+        //         mobilecloud.lib.RemoteExecutionListener __remoteExeListener__ = 
+        //                mobilecloud.ClassUtils.newInstance(((mobilecloud.lib.Remote)__method__.getAnnotation(mobilecloud.lib.Remote.class)).listener());
+        String remoteExeListenerValName = "__remoteExeListener__";
+        code.append("        " + RemoteExecutionListener.class.getName() + " " + remoteExeListenerValName + " = "
+                + generateNewRemoteExecutionListenerCall(reflectionMethodVarName) + ";\n");
+        
+        //         if(__remoteExeListener__.onRemoteExecutionStart(__method__, this, __args__)) {
+        code.append("        if (" + generateOnRemoteExecutionStartCall(remoteExeListenerValName,
+                reflectionMethodVarName, argsVarName, method) + ") {\n");
+        
+        //             try {
+        code.append("            try {\n");
+        
+        //                 Object __result__ = mobilecode.engine.Engine.getInstance().invokeRemotely(__method__, this, __args__);
         String resultVarName = "__result__";
-        code.append("        Object " + resultVarName + " = "
-                + generateInvokeRemotelyCall(reflectionMethodVarName, method) + ";\n");
+        code.append("                Object " + resultVarName + " = "
+                + generateInvokeRemotelyCall(reflectionMethodVarName, argsVarName, method) + ";\n");
 
-        //         return (String) __result__;
-        code.append("        " + generateReturnStatement(resultVarName, method) + ";\n");
+        //                 __remoteExeListener__.onRemoteExecutionComplete(__method__, this, __args__, __result__, true, null);
+        code.append("                " + generateOnRemoteExecutionCompleteCall(remoteExeListenerValName,
+                reflectionMethodVarName, argsVarName, resultVarName, "true", "null", method) + ";\n");
+        
+        //                 return (java.lang.String) __result__;
+        code.append("                " + generateReturnStatement(resultVarName, method) + ";\n");
+        
+        //             } catch(mobilecloud.engine.RemoteExecutionFailedException e) {
+        code.append("            } catch(" + RemoteExecutionFailedException.class.getName() + " e) {\n");
+        
+        //                 __remoteExeListener__.onRemoteExecutionComplete(__method__, this, __args__, null, false, e);
+        code.append("                " + generateOnRemoteExecutionCompleteCall(remoteExeListenerValName,
+                reflectionMethodVarName, argsVarName, "null", "false", "e", method) + ";\n");
+        
+        //                 throw e;
+        code.append("                throw e;\n");
+        
+        //             }
+        code.append("            }\n");
+        
+        //         }
+        code.append("        }\n");
         
         //     }
         code.append("    }\n");
         
-        // } catch (java.lang.Exception e) {
+        // } catch (Exception e) {
         code.append("} catch (" + Exception.class.getName() + " e) {\n");
         
         //     e.printStackTrace();
@@ -108,12 +148,12 @@ public class RemoteMethodTransformer implements IClassTransformer {
         String methodName = method.getName();
         code.append(className + ".class.getDeclaredMethod(\"" + methodName + "\", ");
         CtClass[] paramTypes = method.getParameterTypes();
-        if(paramTypes.length == 0) {
+        if (paramTypes.length == 0) {
             code.append("new Class[0]");
         } else {
             code.append("new Class[]{");
-            for(int i=0; i < paramTypes.length; i++) {
-                if(i > 0) {
+            for (int i = 0; i < paramTypes.length; i++) {
+                if (i > 0) {
                     code.append(", ");
                 }
                 code.append(paramTypes[i].getName() + ".class");
@@ -124,7 +164,25 @@ public class RemoteMethodTransformer implements IClassTransformer {
         return code.toString();
     }
     
-    private String generateShouldMigrateCall(String reflectionMethodVarName, CtMethod method) throws NotFoundException {
+    private String generateCreateArgsStatement(CtMethod method) throws NotFoundException {
+        StringBuilder code = new StringBuilder();
+        CtClass[] paramTypes = method.getParameterTypes();
+        if (paramTypes.length == 0) {
+            code.append("new Object[0]");
+        } else {
+            code.append("new Object[]{");
+            for (int i = 1; i <= paramTypes.length; i++) {
+                if (i > 1) {
+                    code.append(", ");
+                }
+                code.append("$" + i);
+            }
+            code.append("}");
+        }
+        return code.toString();
+    }
+
+    private String generateShouldMigrateCall(String reflectionMethodVarName, String argsVarName, CtMethod method) throws NotFoundException {
         StringBuilder code = new StringBuilder();
         code.append(Engine.class.getName() + ".getInstance()." + "shouldMigrate(" + reflectionMethodVarName);
         if (Modifier.isStatic(method.getModifiers())) {
@@ -132,24 +190,30 @@ public class RemoteMethodTransformer implements IClassTransformer {
         } else {
             code.append(", this");
         }
-        CtClass[] paramTypes = method.getParameterTypes();
-        if(paramTypes.length == 0) {
-            code.append(", new Object[0]");
-        } else {
-            code.append(", new Object[]{");
-            for (int i = 1; i <= paramTypes.length; i++) {
-                if(i > 1) {
-                    code.append(", ");
-                }
-                code.append("$" + i);
-            }
-            code.append("}");
-        }
-        code.append(')');
+        code.append(", " + argsVarName + ")");
         return code.toString();
     }
+
+    private String generateNewRemoteExecutionListenerCall(String reflectionMethodVarName) {
+        return ClassUtils.class.getName() + ".newInstance(((" + Remote.class.getName() + ")"
+                + reflectionMethodVarName + ".getAnnotation(" + Remote.class.getName() + ".class)).listener())";
+    }
     
-    private String generateInvokeRemotelyCall(String reflectionMethodVarName, CtMethod method) throws NotFoundException {
+    private String generateOnRemoteExecutionStartCall(String remoteExeListenerValName, String reflectionMethodVarName, String argsVarName, 
+            CtMethod method) throws NotFoundException {
+        StringBuilder code = new StringBuilder();
+        code.append(remoteExeListenerValName + ".onRemoteExecutionStart(" + reflectionMethodVarName);
+        if (Modifier.isStatic(method.getModifiers())) {
+            code.append(", null");
+        } else {
+            code.append(", this");
+        }
+        code.append(", " + argsVarName + ")");
+        return code.toString();
+    }
+
+    private String generateInvokeRemotelyCall(String reflectionMethodVarName, String argsVarName, CtMethod method)
+            throws NotFoundException {
         StringBuilder code = new StringBuilder();
         code.append(Engine.class.getName() + ".getInstance()." + "invokeRemotely(" + reflectionMethodVarName);
         if (Modifier.isStatic(method.getModifiers())) {
@@ -157,20 +221,22 @@ public class RemoteMethodTransformer implements IClassTransformer {
         } else {
             code.append(", this");
         }
-        CtClass[] paramTypes = method.getParameterTypes();
-        if(paramTypes.length == 0) {
-            code.append(", new Object[0]");
+        code.append(", " + argsVarName + ")");
+        return code.toString();
+    }
+    
+    private String generateOnRemoteExecutionCompleteCall(String remoteExeListenerValName,
+            String reflectionMethodVarName, String argsVarName, String resultVarName, String successfulBooleanVarName,
+            String exceptionVarName, CtMethod method) {
+        StringBuilder code = new StringBuilder();
+        code.append(remoteExeListenerValName + ".onRemoteExecutionComplete(" + reflectionMethodVarName);
+        if (Modifier.isStatic(method.getModifiers())) {
+            code.append(", null");
         } else {
-            code.append(", new Object[]{");
-            for (int i = 1; i <= paramTypes.length; i++) {
-                if(i > 1) {
-                    code.append(", ");
-                }
-                code.append("$" + i);
-            }
-            code.append("}");
+            code.append(", this");
         }
-        code.append(')');
+        code.append(", " + argsVarName + ", " + resultVarName + ", " + successfulBooleanVarName + ", "
+                + exceptionVarName + ")");
         return code.toString();
     }
 
@@ -178,7 +244,7 @@ public class RemoteMethodTransformer implements IClassTransformer {
         StringBuilder code = new StringBuilder("return ");
         CtClass returnType = method.getReturnType();
         if (returnType.isPrimitive()) {
-            if(!returnType.getName().equals("void")) {
+            if (!returnType.getName().equals("void")) {
                 code.append("((" + primitiveToBoxingType.get(returnType.getName()) + ")" + resultVarName + ")."
                         + returnType.getName() + "Value()");
             }

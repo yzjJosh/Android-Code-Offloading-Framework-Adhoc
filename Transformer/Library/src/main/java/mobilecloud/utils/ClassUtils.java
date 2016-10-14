@@ -1,5 +1,7 @@
 package mobilecloud.utils;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.HashMap;
@@ -97,5 +99,23 @@ public class ClassUtils {
      */
     public static boolean isPrimitiveArray(Class<?> clazz) {
         return clazz.isArray() && clazz.getComponentType().isPrimitive();
+    }
+    
+    /**
+     * Create a new instance of a class by calling empty-argument constructor.
+     * @param clazz the class
+     * @return the instance
+     * @throws SecurityException 
+     * @throws NoSuchMethodException 
+     * @throws InvocationTargetException 
+     * @throws IllegalArgumentException 
+     * @throws IllegalAccessException 
+     * @throws InstantiationException 
+     */
+    public static <T> T newInstance(Class<T> clazz) throws NoSuchMethodException, InstantiationException,
+            IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+        Constructor<T> c = clazz.getDeclaredConstructor();
+        c.setAccessible(true);
+        return c.newInstance();
     }
 }

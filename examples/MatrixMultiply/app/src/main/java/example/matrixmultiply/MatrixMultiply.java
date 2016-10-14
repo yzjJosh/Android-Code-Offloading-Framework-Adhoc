@@ -3,6 +3,7 @@ package example.matrixmultiply;
 import android.util.Log;
 
 import java.io.Serializable;
+import java.lang.reflect.Method;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -10,7 +11,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import mobilecloud.engine.RemoteExecutionFailedException;
 import mobilecloud.lib.Remote;
+import mobilecloud.lib.RemoteExecutionListener;
 
 public class MatrixMultiply {
 
@@ -62,6 +65,22 @@ public class MatrixMultiply {
         return res;
     }
 
+    private static class WorkerListener implements RemoteExecutionListener {
+
+        private static final String TAG = WorkerListener.class.getSimpleName();
+
+        @Override
+        public boolean onRemoteExecutionStart(Method method, Object o, Object[] objects) {
+            Log.d(TAG, "Method " + method.getName() + " is running remotely ...");
+            return true;
+        }
+
+        @Override
+        public void onRemoteExecutionComplete(Method method, Object o, Object[] objects, Object o1, boolean b, RemoteExecutionFailedException e) {
+            Log.d(TAG, "Remote invocation completes. Status is " + (b? "success": "failed"));
+        }
+    }
+
     private static class Worker implements Callable<int[][]>, Serializable{
 
         private static final String TAG = Worker.class.getSimpleName();
@@ -76,7 +95,7 @@ public class MatrixMultiply {
             this.cols = cols;
         }
 
-        @Remote
+        @Remote(listener = WorkerListener.class)
         @Override
         public int[][] call() throws Exception {
             for(int i=0; i<rows.length; i++) {
