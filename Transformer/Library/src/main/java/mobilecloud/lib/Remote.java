@@ -18,5 +18,5 @@ public @interface Remote {
      * the listener which will be called on remote execution
      * @return the listener
      */
-    Class<? extends RemoteExecutionListener> listener() default EmptyRemoteExecutionListener.class;
+    Class<? extends RemoteExecutionListener> listener() default DefaultRemoteExecutionListener.class;
 }

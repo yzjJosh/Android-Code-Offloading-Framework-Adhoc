@@ -117,9 +117,6 @@ public class RemoteMethodTransformer implements IClassTransformer {
         code.append("                " + generateOnRemoteExecutionCompleteCall(remoteExeListenerValName,
                 reflectionMethodVarName, argsVarName, "null", "false", "e", method) + ";\n");
         
-        //                 throw e;
-        code.append("                throw e;\n");
-        
         //             }
         code.append("            }\n");
         

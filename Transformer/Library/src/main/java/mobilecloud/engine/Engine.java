@@ -3,6 +3,7 @@ package mobilecloud.engine;
 import java.io.IOException;
 import java.io.Serializable;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 
 import android.content.Context;
 import mobilecloud.api.RemoteInvocationRequest;
@@ -128,12 +129,18 @@ public class Engine {
     }
 
     /**
-     * Determine if an invocation should be migrated to the cloud
-     * 
-     * @return true if should migrate
+     * Determine if an invocation should be migrated to the cloud at current
+     * point. 
+     * @param method the method to be invoked
+     * @param invoker the invoker
+     * @param args the arguments to be passed
+     * @return true if it should be migrated
      */
     public boolean shouldMigrate(Method method, Object invoker, Object... args) {
         if (method == null || isOnCloud() || !schedular.haveAvailable()) {
+            return false;
+        } 
+        if(Modifier.isNative(method.getModifiers())) {
             return false;
         }
         for (Object arg : args) {
@@ -143,16 +150,6 @@ public class Engine {
         }
         if (invoker != null && !(invoker instanceof Serializable)) {
             return false;
-        }
-        synchronized(schedular) {
-            //Try schedule and schedule should be atomic. Thus avoid missing remote schedules.
-            
-            if (schedular.trySchedule() instanceof LocalHost) {
-                // If the next host to be scheduled is local host, we should do
-                // computation locally, thus return false.
-                schedular.schedule();
-                return false;
-            }
         }
         return true;
     }
@@ -168,28 +165,30 @@ public class Engine {
 
     /**
      * Invoke this method on cloud
-     * 
+     * @param method the method to be invoked
+     * @param invoker the invoker against this method
+     * @param args the arguments to be passed
      * @return the result of this execution
-     * @throws Exception
-     *             if execution fails
+     * @throws RemoteExecutionFailedException
+     *             if execution fails due to any reason
      */
     public Object invokeRemotely(Method method, Object invoker, Object... args) {
-        // Check available hosts
-        Host host = schedular.schedule();
-        if (host == null) {
-            throw new RemoteExecutionFailedException("No host available!");
-        } else if(host instanceof LocalHost) {
-            throw new RemoteExecutionFailedException("Shedular schedule to run this method locally!");
-        }
-
-        // Record object meta data
-        ObjectMigrator migrator = new ObjectMigrator();
-        migrator.migrate(invoker);
-        for (Object arg : args) {
-            migrator.migrate(arg);
-        }
-
         try {
+            // Check available hosts
+            Host host = schedular.schedule();
+            if (host == null) {
+                throw new IllegalStateException("No host available!");
+            } else if(host instanceof LocalHost) {
+                throw new IllegalStateException("Shedular schedule to run this method locally!");
+            }
+    
+            // Record object meta data
+            ObjectMigrator migrator = new ObjectMigrator();
+            migrator.migrate(invoker);
+            for (Object arg : args) {
+                migrator.migrate(arg);
+            }
+
             // Build a request
             RemoteInvocationRequest request = buildInvocationRequest(host.ip, host.port, method, invoker, args,
                     migrator.takeToken().expand());

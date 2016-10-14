@@ -95,7 +95,7 @@ public class MatrixMultiply {
             this.cols = cols;
         }
 
-        @Remote(listener = WorkerListener.class)
+        @Remote//(listener = WorkerListener.class)
         @Override
         public int[][] call() throws Exception {
             Log.e(TAG, "Call is invoking locally ...");
