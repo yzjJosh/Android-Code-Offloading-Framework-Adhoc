@@ -2,8 +2,6 @@ package mobilecloud.test.engine;
 
 import static org.junit.Assert.*;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
 import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -28,7 +26,7 @@ import mobilecloud.api.UploadApplicationExecutableRequest;
 import mobilecloud.api.UploadApplicationExecutableResponse;
 import mobilecloud.client.Client;
 import mobilecloud.engine.Engine;
-import mobilecloud.engine.ExecutableByteProvider;
+import mobilecloud.engine.ExecutableProvider;
 import mobilecloud.engine.RemoteExecutionFailedException;
 import mobilecloud.engine.host.Host;
 import mobilecloud.engine.host.monitor.HostMonitor;
@@ -214,11 +212,11 @@ public class EngineTest {
         Context context = Mockito.mock(Context.class);
         Mockito.when(context.getPackageName()).thenReturn(AppName);
         
-        ExecutableByteProvider apk = Mockito.mock(ExecutableByteProvider.class);
-        Mockito.when(apk.provide()).thenAnswer(new Answer<InputStream>(){
+        ExecutableProvider apk = Mockito.mock(ExecutableProvider.class);
+        Mockito.when(apk.provide()).thenAnswer(new Answer<String>(){
             @Override
-            public InputStream answer(InvocationOnMock invocation) throws Throwable {
-                return new ByteArrayInputStream(new byte[0]);
+            public String answer(InvocationOnMock invocation) throws Throwable {
+                return "";
             }
         });
 

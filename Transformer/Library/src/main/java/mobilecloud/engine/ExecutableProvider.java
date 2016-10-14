@@ -1,9 +1,6 @@
 package mobilecloud.engine;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
 
 import org.zeroturnaround.zip.NameMapper;
 import org.zeroturnaround.zip.ZipUtil;
@@ -15,11 +12,11 @@ import mobilecloud.utils.FileUtils;
  * A provider that can provide executable bytes
  *
  */
-public class ExecutableByteProvider {
+public class ExecutableProvider {
     
     private Context context;
     
-    public ExecutableByteProvider(Context context) {
+    public ExecutableProvider(Context context) {
         this.context = context;
     }
     
@@ -32,21 +29,16 @@ public class ExecutableByteProvider {
     }
 
     /**
-     * provide executable data
+     * provide executable file path
      */
-    public synchronized InputStream provide() {
-        try {
-            if(!new File(getExecutableFilePath()).exists()) {
-                FileUtils.createDirIfDoesNotExist(getTempOutputDir());
-                recursiveUnZip(context.getPackageCodePath());
-                ZipUtil.pack(new File(getTempOutputDir()), new File(getExecutableFilePath()));
-                FileUtils.deleteFolder(getTempOutputDir());
-            }
-            return new FileInputStream(getExecutableFilePath());
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
+    public synchronized String provide() {
+        if (!new File(getExecutableFilePath()).exists()) {
+            FileUtils.createDirIfDoesNotExist(getTempOutputDir());
+            recursiveUnZip(context.getPackageCodePath());
+            ZipUtil.pack(new File(getTempOutputDir()), new File(getExecutableFilePath()));
+            FileUtils.deleteFolder(getTempOutputDir());
         }
+        return getExecutableFilePath();
     }
     
     private void recursiveUnZip(String path) {

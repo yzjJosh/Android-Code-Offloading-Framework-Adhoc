@@ -19,9 +19,8 @@ import mobilecloud.engine.schedular.Schedular;
 import mobilecloud.lib.RemoteExecutionListener;
 import mobilecloud.objs.ObjectMigrator;
 import mobilecloud.objs.Token;
+import mobilecloud.server.DuplicateExecutableException;
 import mobilecloud.server.NoApplicationExecutableException;
-import mobilecloud.server.handler.upload.DuplicateExecutableException;
-import mobilecloud.utils.IOUtils;
 
 /**
  * The cloud compute engine
@@ -93,7 +92,7 @@ public class Engine {
     private final Context ctx;
     private final Client client;
     private final Schedular schedular;
-    private final ExecutableByteProvider executableProvider;
+    private final ExecutableProvider executableProvider;
     private final HostMonitor hostMonitor;
     
     public Engine() {
@@ -107,7 +106,7 @@ public class Engine {
         this.hostMonitor = null;
     }
 
-    public Engine(Context context, Client client, Schedular schedular, ExecutableByteProvider executableProvider, HostMonitor hostMonitor) {
+    public Engine(Context context, Client client, Schedular schedular, ExecutableProvider executableProvider, HostMonitor hostMonitor) {
         if(isOnCloud()) {
             throw new IllegalStateException("This constructor is only for local environment.");
         }
@@ -146,16 +145,22 @@ public class Engine {
     public boolean shouldMigrate(Method method, Object invoker, Object... args) {
         if (method == null || isOnCloud() || !schedular.haveAvailable()) {
             return false;
-        } 
-        if(Modifier.isNative(method.getModifiers())) {
+        }
+        if (Modifier.isNative(method.getModifiers())) {
             return false;
         }
         for (Object arg : args) {
-            if (arg != null && !(arg instanceof Serializable)) {
+            if (arg == null) {
+                continue;
+            }
+            if (!(arg instanceof Serializable)) {
+                return false;
+            }
+            if (arg instanceof Context) {
                 return false;
             }
         }
-        if (invoker != null && !(invoker instanceof Serializable)) {
+        if (invoker != null && (!(invoker instanceof Serializable) || invoker instanceof Context)) {
             return false;
         }
         return true;
@@ -221,7 +226,7 @@ public class Engine {
             } catch (NoApplicationExecutableException e) {
                 // If server does not have executable files, send it to server
 
-                uploadAPK(host); // Upload apk file
+                uploadExecutable(host); // Upload apk file
 
                 resp = client.request(request); // Retry this request
             }
@@ -265,10 +270,10 @@ public class Engine {
         return request;
     }
     
-    //Upload apk file to a host
-    private void uploadAPK(Host host) throws Throwable {
+    //Upload executable file to a host
+    private void uploadExecutable(Host host) throws Throwable {
         Request req = new UploadApplicationExecutableRequest().setApplicationId(appName())
-                .setExecutable(IOUtils.inputStreamToByteArray(executableProvider.provide())).setIp(host.ip)
+                .setExecutablePath(executableProvider.provide()).setIp(host.ip)
                 .setPort(host.port);
         Response resp = client.request(req);
         if (!resp.isSuccess() && !(resp.getThrowable() instanceof DuplicateExecutableException)) {
@@ -289,7 +294,7 @@ public class Engine {
                         engine = new Engine();
                     } else {
                         engine = new Engine(context, Client.getInstance(), Schedular.getInstance(),
-                                new ExecutableByteProvider(context), HostMonitor.getInstance());
+                                new ExecutableProvider(context), HostMonitor.getInstance());
                     }
                 }
             }

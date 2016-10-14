@@ -1,4 +1,4 @@
-package mobilecloud.server.handler.upload;
+package mobilecloud.server;
 
 /**
  * An exception that indicates receiving of duplicate executable

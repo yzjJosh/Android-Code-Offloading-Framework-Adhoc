@@ -1,9 +1,6 @@
 package mobilecloud.server.handler.upload;
 
 import java.io.File;
-import java.io.FileOutputStream;
-import java.util.HashSet;
-import java.util.Set;
 
 import org.zeroturnaround.zip.ZipUtil;
 
@@ -11,6 +8,7 @@ import mobilecloud.api.Request;
 import mobilecloud.api.Response;
 import mobilecloud.api.UploadApplicationExecutableRequest;
 import mobilecloud.api.UploadApplicationExecutableResponse;
+import mobilecloud.server.DuplicateExecutableException;
 import mobilecloud.server.ExecutableLoader;
 import mobilecloud.server.NoApplicationExecutableException;
 import mobilecloud.server.handler.Handler;
@@ -22,11 +20,9 @@ import mobilecloud.utils.FileUtils;
 public class UploadApplicationExecutableHandler implements Handler {
     
     private final ExecutableLoader executableLoader;
-    private final Set<String> servingApps;
     
     public UploadApplicationExecutableHandler(ExecutableLoader executableLoader) {
         this.executableLoader = executableLoader;
-        this.servingApps = new HashSet<>();
     }
 
     @Override
@@ -36,60 +32,29 @@ public class UploadApplicationExecutableHandler implements Handler {
         }
         UploadApplicationExecutableRequest upReq = (UploadApplicationExecutableRequest) request;
         UploadApplicationExecutableResponse resp = new UploadApplicationExecutableResponse();
-        
-        synchronized(servingApps) {
-            while(servingApps.contains(upReq.getApplicationId())) {
-                try {
-                    servingApps.wait();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-            servingApps.add(upReq.getApplicationId());
-        }
-        
+
+        // If the executable already exists, ignore this uploading.
         try {
-        
-            // If the executable already exists, ignore this uploading.
-            try {
-                executableLoader.loadExecutable(upReq.getApplicationId());
-                return resp.setSuccess(false).setThrowable(new DuplicateExecutableException("Executable already exists!"));
-            } catch(NoApplicationExecutableException e) {}
-            
-            // Write executable file to tmp folder
-            FileOutputStream fileOuputStream = null;
-            try {
-                FileUtils.createDirIfDoesNotExist(executableLoader.getTmpDirectory(upReq.getApplicationId()));
-                fileOuputStream = new FileOutputStream(
-                        executableLoader.getTmpExecutablePackLocation(upReq.getApplicationId()));
-                fileOuputStream.write(upReq.getExecutable());
-            } finally {
-                if (fileOuputStream != null) {
-                    fileOuputStream.close();
-                }
-            }
-    
-            // unzip the executables
-            ZipUtil.unpack(new File(executableLoader.getTmpExecutablePackLocation(upReq.getApplicationId())),
-                    new File(executableLoader.getExecutableDirectory(upReq.getApplicationId())));
-    
-            // Remove tmp file
-            FileUtils.deleteFolder(executableLoader.getTmpDirectory(upReq.getApplicationId()));
-            
-            try {
-                // Load the executable to memory
-                executableLoader.loadExecutable(upReq.getApplicationId());
-                return resp.setSuccess(true);
-            } catch (Exception e) {
-                return resp.setSuccess(false).setThrowable(e);
-            }
-        
-        } finally {
-            synchronized(servingApps) {
-                servingApps.remove(upReq.getApplicationId());
-                servingApps.notifyAll();
-            }
+            executableLoader.loadExecutable(upReq.getApplicationId());
+            return resp.setSuccess(false).setThrowable(new DuplicateExecutableException("Executable already exists!"));
+        } catch (NoApplicationExecutableException e) {}
+
+
+        // unzip the executables
+        ZipUtil.unpack(new File(upReq.getExecutablePath()),
+                new File(executableLoader.getExecutableDirectory(upReq.getApplicationId())));
+
+        // Remove tmp file
+        FileUtils.deleteFolder(upReq.getExecutablePath());
+
+        try {
+            // Load the executable to memory
+            executableLoader.loadExecutable(upReq.getApplicationId());
+            return resp.setSuccess(true);
+        } catch (Exception e) {
+            return resp.setSuccess(false).setThrowable(e);
         }
+
     }
 
 }

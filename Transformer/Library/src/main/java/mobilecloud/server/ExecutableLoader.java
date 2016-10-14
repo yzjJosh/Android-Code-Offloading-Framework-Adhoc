@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import android.content.Context;
 import dalvik.system.PathClassLoader;
+import mobilecloud.utils.FileUtils;
 
 /**
  * Load apk to a class loader
@@ -69,7 +70,7 @@ public class ExecutableLoader {
     public ClassLoader loadExecutable(String applicationId) throws NoApplicationExecutableException {
         ClassLoader cl = classLoaders.get(applicationId);
         if(cl == null) {
-            if (new File(getExecutableDirectory(applicationId)).exists()) {
+            if (FileUtils.hasFiles(getExecutableDirectory(applicationId))) {
                 StringBuilder path = new StringBuilder();
                 for(File dex: new File(getExecutableDirectory(applicationId)).listFiles()) {
                     if(path.length() > 0) {
@@ -77,10 +78,8 @@ public class ExecutableLoader {
                     }
                     path.append(dex.getPath());
                 }
-                if(path.length() > 0) {
-                    cl = new PathClassLoader(path.toString(), context.getClassLoader());
-                    classLoaders.put(applicationId, cl);
-                }
+                cl = new PathClassLoader(path.toString(), context.getClassLoader());
+                classLoaders.put(applicationId, cl);
             }
         }
         if(cl == null) {

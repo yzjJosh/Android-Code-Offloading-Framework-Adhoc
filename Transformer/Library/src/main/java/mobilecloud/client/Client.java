@@ -1,5 +1,7 @@
 package mobilecloud.client;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.net.Socket;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -66,6 +68,8 @@ public class Client {
         }
         
         Host host = new Host(request.getIp(), request.getPort());
+
+        // Request lock before connecting to a host. This controls the frequency of requests
         lock.lock(host);
         Socket socket = null;
         try {
@@ -73,9 +77,12 @@ public class Client {
         } finally {
             lock.unlock(host);
         }
+        
         try {
-            ObjectInputStreamWrapper is = new ObjectInputStreamWrapper(socket.getInputStream());
-            ObjectOutputStreamWrapper os = new ObjectOutputStreamWrapper(socket.getOutputStream());
+            ObjectInputStreamWrapper is = new ObjectInputStreamWrapper(
+                    new BufferedInputStream(socket.getInputStream()));
+            ObjectOutputStreamWrapper os = new ObjectOutputStreamWrapper(
+                    new BufferedOutputStream(socket.getOutputStream()));
             
             //Firstly send request type
             os.get().writeObject(request.getClass().getName());

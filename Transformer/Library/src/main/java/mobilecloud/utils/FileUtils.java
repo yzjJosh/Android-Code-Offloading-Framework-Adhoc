@@ -47,5 +47,24 @@ public class FileUtils {
             f.delete();
         }
     }
+    
+    /**
+     * Check if a file exists or not
+     * @param path the path to file
+     * @return if it exists
+     */
+    public static boolean fileExists(String path) {
+        return new File(path).exists();
+    }
+    
+    /**
+     * Check if a folder has files or not
+     * @param folder the folder
+     * @return if it has files or not. If it does not exist or it is not a folder, return false
+     */
+    public static boolean hasFiles(String folder) {
+        File f = new File(folder);
+        return f.exists() && f.isDirectory() && f.listFiles().length > 0;
+    }
 
 }

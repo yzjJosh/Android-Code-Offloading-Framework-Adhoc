@@ -1,5 +1,7 @@
 package mobilecloud.server;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map;
@@ -49,7 +51,7 @@ public class Server {
         this.registerReceiver(RemoteInvocationRequest.class.getName(),
                 new RemoteInvocationRequestReceiver(executableLoader));
         this.registerReceiver(UploadApplicationExecutableRequest.class.getName(),
-                new UploadApplicationExecutableRequestReceiver());
+                new UploadApplicationExecutableRequestReceiver(executableLoader));
         this.registerReceiver(MonitorHostRequest.class.getName(), new MonitorHostRequestReceiver());
     }
     
@@ -101,8 +103,8 @@ public class Server {
      * @throws Exception if error happens
      */
     public Response serve(InputStream is, OutputStream os) throws Exception {
-        ObjectInputStreamWrapper in = new AdvancedObjectInputStreamWrapper(is);
-        ObjectOutputStreamWrapper out = new ObjectOutputStreamWrapper(os);
+        ObjectInputStreamWrapper in = new AdvancedObjectInputStreamWrapper(new BufferedInputStream(is));
+        ObjectOutputStreamWrapper out = new ObjectOutputStreamWrapper(new BufferedOutputStream(os));
 
         // Read type of request
         String type = (String) in.get().readObject();
@@ -110,14 +112,11 @@ public class Server {
         // Get receiver
         Receiver receiver = receivers.get(type);
         if (receiver == null) {
-            Response resp = new IllegalRequestResponse(new IllegalRequestException(type));
-            out.get().writeObject(resp);
-            out.get().flush();
-            return resp;
+            throw new IllegalRequestException(type);
         }
 
         Request req = receiver.receive(in, out);
-        
+
         Response resp = serve(req);
         out.get().writeObject(resp);
         out.get().flush();

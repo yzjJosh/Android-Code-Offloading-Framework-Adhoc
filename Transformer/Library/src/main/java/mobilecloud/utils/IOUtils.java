@@ -1,6 +1,5 @@
 package mobilecloud.utils;
 
-import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -78,20 +77,16 @@ public class IOUtils {
      * @throws IOException
      */
     public static byte[] inputStreamToByteArray(InputStream in) throws IOException {
-        BufferedInputStream is = null;
         try {
-            is = new BufferedInputStream(in);
             ByteArrayOutputStream arrayOs = new ByteArrayOutputStream();
-            byte[] buffer = new byte[1<<16];
+            byte[] buffer = new byte[1<<10];
             int count = 0;
-            while((count = is.read(buffer)) != -1) {
+            while((count = in.read(buffer)) != -1) {
                 arrayOs.write(buffer, 0, count);
             }
             return arrayOs.toByteArray();
         } finally {
-            if(is != null) {
-                is.close();
-            }
+            in.close();
         }
     }
 }

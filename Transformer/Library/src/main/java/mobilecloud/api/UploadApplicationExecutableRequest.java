@@ -6,7 +6,7 @@ package mobilecloud.api;
 public class UploadApplicationExecutableRequest extends Request {
     private static final long serialVersionUID = 1L;
     private String applicationId;
-    private byte[] executable;
+    private String executablePath;
 
     public String getApplicationId() {
         return applicationId;
@@ -17,12 +17,13 @@ public class UploadApplicationExecutableRequest extends Request {
         return this;
     }
 
-    public byte[] getExecutable() {
-        return executable;
+    public String getExecutablePath() {
+        return executablePath;
     }
 
-    public UploadApplicationExecutableRequest setExecutable(byte[] executable) {
-        this.executable = executable;
+    public UploadApplicationExecutableRequest setExecutablePath(String executablePath) {
+        this.executablePath = executablePath;
         return this;
     }
+
 }
