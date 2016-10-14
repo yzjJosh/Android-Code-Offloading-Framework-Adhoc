@@ -144,11 +144,15 @@ public class Engine {
         if (invoker != null && !(invoker instanceof Serializable)) {
             return false;
         }
-        if (schedular.trySchedule() instanceof LocalHost) {
-            // If the next host to be scheduled is local host, we should do
-            // computation locally, thus return false.
-            schedular.schedule();
-            return false;
+        synchronized(schedular) {
+            //Try schedule and schedule should be atomic. Thus avoid missing remote schedules.
+            
+            if (schedular.trySchedule() instanceof LocalHost) {
+                // If the next host to be scheduled is local host, we should do
+                // computation locally, thus return false.
+                schedular.schedule();
+                return false;
+            }
         }
         return true;
     }
@@ -173,7 +177,9 @@ public class Engine {
         // Check available hosts
         Host host = schedular.schedule();
         if (host == null) {
-            throw new IllegalStateException("No host available!");
+            throw new RemoteExecutionFailedException("No host available!");
+        } else if(host instanceof LocalHost) {
+            throw new RemoteExecutionFailedException("Shedular schedule to run this method locally!");
         }
 
         // Record object meta data

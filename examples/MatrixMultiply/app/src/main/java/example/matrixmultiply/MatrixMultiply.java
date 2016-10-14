@@ -71,13 +71,13 @@ public class MatrixMultiply {
 
         @Override
         public boolean onRemoteExecutionStart(Method method, Object o, Object[] objects) {
-            Log.d(TAG, "Method " + method.getName() + " is running remotely ...");
+            Log.e(TAG, "Method " + method.getName() + " is running remotely ...");
             return true;
         }
 
         @Override
         public void onRemoteExecutionComplete(Method method, Object o, Object[] objects, Object o1, boolean b, RemoteExecutionFailedException e) {
-            Log.d(TAG, "Remote invocation completes. Status is " + (b? "success": "failed"));
+            Log.e(TAG, "Remote invocation completes. Status is " + (b? "success": "failed"));
         }
     }
 
@@ -98,6 +98,7 @@ public class MatrixMultiply {
         @Remote(listener = WorkerListener.class)
         @Override
         public int[][] call() throws Exception {
+            Log.e(TAG, "Call is invoking locally ...");
             for(int i=0; i<rows.length; i++) {
                 for(int j=0; j<cols.length; j++) {
                     res[i][j] = multiplyVector(rows[i], cols[j]);
