@@ -16,6 +16,7 @@ import mobilecloud.engine.host.Host;
 import mobilecloud.engine.host.monitor.HostMonitor;
 import mobilecloud.engine.host.monitor.HostStatusChangeListener;
 import mobilecloud.engine.schedular.Schedular;
+import mobilecloud.lib.RemoteExecutionListener;
 import mobilecloud.objs.ObjectMigrator;
 import mobilecloud.objs.Token;
 import mobilecloud.server.NoApplicationExecutableException;
@@ -165,23 +166,37 @@ public class Engine {
 
     /**
      * Invoke this method on cloud
-     * @param method the method to be invoked
-     * @param invoker the invoker against this method
-     * @param args the arguments to be passed
+     * 
+     * @param listener
+     *            the remote execution listener to listen to execution events
+     * @param method
+     *            the method to be invoked
+     * @param invoker
+     *            the invoker against this method
+     * @param args
+     *            the arguments to be passed
      * @return the result of this execution
+     * @throws RemoteExecutionAbortedException 
+     *             if the execution is aborted manually or by schedular
      * @throws RemoteExecutionFailedException
-     *             if execution fails due to any reason
+     *             if remote execution fails due to any reason
      */
-    public Object invokeRemotely(Method method, Object invoker, Object... args) {
+    public Object invokeRemotely(RemoteExecutionListener listener, Method method, Object invoker, Object... args) {
+
+        // Check available hosts
+        Host host = schedular.schedule();
+        if (host == null) {
+            throw new RemoteExecutionAbortedException("No host available!");
+        } else if (host instanceof LocalHost) {
+            throw new RemoteExecutionAbortedException("Shedular schedule to run this method locally!");
+        }
+        
+        if(!listener.onRemoteExecutionStart(method, invoker, args)) {
+            throw new RemoteExecutionAbortedException("Execution is aborted manually");
+        }
+        
         try {
-            // Check available hosts
-            Host host = schedular.schedule();
-            if (host == null) {
-                throw new IllegalStateException("No host available!");
-            } else if(host instanceof LocalHost) {
-                throw new IllegalStateException("Shedular schedule to run this method locally!");
-            }
-    
+
             // Record object meta data
             ObjectMigrator migrator = new ObjectMigrator();
             migrator.migrate(invoker);
@@ -194,17 +209,16 @@ public class Engine {
                     migrator.takeToken().expand());
 
             // Send the request
-            Response resp = null; 
+            Response resp = null;
             try {
                 resp = client.request(request);
             } catch (NoApplicationExecutableException e) {
                 // If server does not have executable files, send it to server
-                
+
                 uploadAPK(host); // Upload apk file
-                
+
                 resp = client.request(request); // Retry this request
             }
-
 
             // If execution fails, throw an exception
             if (!resp.isSuccess()) {
@@ -218,9 +232,13 @@ public class Engine {
             // Synchronize objects
             RemoteInvocationResponse invocResp = (RemoteInvocationResponse) resp;
             migrator.sync(invocResp.getToken(), invocResp.getDiffs());
+
+            Object res = migrator.getObject(invocResp.getReturnVal());
+            listener.onRemoteExecutionComplete(method, invoker, args, res, true, null);
             
-            return migrator.getObject(invocResp.getReturnVal());
+            return res;
         } catch (Throwable t) {
+            listener.onRemoteExecutionComplete(method, invoker, args, null, false, t);
             throw new RemoteExecutionFailedException("Remote execution fails!", t);
         }
     }

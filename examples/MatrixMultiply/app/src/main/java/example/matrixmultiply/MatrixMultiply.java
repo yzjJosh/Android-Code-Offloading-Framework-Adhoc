@@ -76,7 +76,7 @@ public class MatrixMultiply {
         }
 
         @Override
-        public void onRemoteExecutionComplete(Method method, Object o, Object[] objects, Object o1, boolean b, RemoteExecutionFailedException e) {
+        public void onRemoteExecutionComplete(Method method, Object o, Object[] objects, Object o1, boolean b, Throwable e) {
             Log.e(TAG, "Remote invocation completes. Status is " + (b? "success": "failed"));
         }
     }
@@ -95,7 +95,7 @@ public class MatrixMultiply {
             this.cols = cols;
         }
 
-        @Remote//(listener = WorkerListener.class)
+        @Remote(listener = WorkerListener.class)
         @Override
         public int[][] call() throws Exception {
             Log.e(TAG, "Call is invoking locally ...");

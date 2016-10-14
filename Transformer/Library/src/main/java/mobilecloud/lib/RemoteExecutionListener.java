@@ -2,8 +2,6 @@ package mobilecloud.lib;
 
 import java.lang.reflect.Method;
 
-import mobilecloud.engine.RemoteExecutionFailedException;
-
 /**
  * An interface that allows users to listen to remote execution events
  *
@@ -41,6 +39,6 @@ public interface RemoteExecutionListener {
      *            the exception that is thrown if execution fails
      */
     public void onRemoteExecutionComplete(Method method, Object invoker, Object[] args, Object returnValue,
-            boolean isSuccess, RemoteExecutionFailedException exception);
+            boolean isSuccess, Throwable exception);
 
 }

@@ -29,6 +29,7 @@ import mobilecloud.engine.Engine;
 import mobilecloud.engine.RemoteExecutionFailedException;
 import mobilecloud.engine.host.Host;
 import mobilecloud.engine.schedular.Schedular;
+import mobilecloud.lib.DefaultRemoteExecutionListener;
 import mobilecloud.server.ExecutableLoader;
 import mobilecloud.server.NoApplicationExecutableException;
 import mobilecloud.server.Server;
@@ -243,7 +244,7 @@ public class EngineTest {
     @Test
     public void testAdd() {
         assertTrue(engine.shouldMigrate(add, l, 100));
-        engine.invokeRemotely(add, l, 100);
+        engine.invokeRemotely(new DefaultRemoteExecutionListener(), add, l, 100);
         assertEquals(5, l.size);
         assertEquals(l0, l.head);
         assertEquals(0, l0.val);
@@ -261,7 +262,7 @@ public class EngineTest {
     @Test
     public void testRemove() {
         assertTrue(engine.shouldMigrate(remove, l, 0));
-        engine.invokeRemotely(remove, l, 0);
+        engine.invokeRemotely(new DefaultRemoteExecutionListener(), remove, l, 0);
         assertEquals(3, l.size);
         assertEquals(l1, l.head);
         assertEquals(0, l0.val);
@@ -277,7 +278,7 @@ public class EngineTest {
     @Test
     public void testMultiply() {
         assertTrue(engine.shouldMigrate(multiply, l, l0));
-        List list = (List) engine.invokeRemotely(multiply, l, 10);
+        List list = (List) engine.invokeRemotely(new DefaultRemoteExecutionListener(), multiply, l, 10);
         assertEquals(4, l.size);
         assertEquals(l0, l.head);
         assertEquals(0, l0.val);
@@ -307,7 +308,7 @@ public class EngineTest {
     @Test
     public void testContains() {
         assertTrue(engine.shouldMigrate(contains, l, l2));
-        boolean res = (Boolean) engine.invokeRemotely(contains, l, l2);
+        boolean res = (Boolean) engine.invokeRemotely(new DefaultRemoteExecutionListener(), contains, l, l2);
         assertTrue(res);
         assertEquals(4, l.size);
         assertEquals(l0, l.head);
@@ -338,7 +339,7 @@ public class EngineTest {
         l.head = null;
         l.size = 0;
         assertTrue(engine.shouldMigrate(concat, l, lists));
-        engine.invokeRemotely(concat, l, lists);
+        engine.invokeRemotely(new DefaultRemoteExecutionListener(), concat, l, lists);
         assertEquals(4, l.size);
         assertEquals(l0, l.head);
         assertEquals(l1, l0.next);
@@ -351,14 +352,14 @@ public class EngineTest {
     public void testSum() {
         TestSum obj = new TestSum();
         assertTrue(engine.shouldMigrate(sum, obj, 1, 2));
-        int res = (Integer) engine.invokeRemotely(sum, obj, 1, 2);
+        int res = (Integer) engine.invokeRemotely(new DefaultRemoteExecutionListener(), sum, obj, 1, 2);
         assertEquals(3, res);
     }
     
     @Test
     public void testStaticSum() {
         assertTrue(engine.shouldMigrate(sumStatic, null, 1, 2));
-        int res = (Integer) engine.invokeRemotely(sumStatic, null, 1, 2);
+        int res = (Integer) engine.invokeRemotely(new DefaultRemoteExecutionListener(), sumStatic, null, 1, 2);
         assertEquals(3, res);
     }
     
@@ -366,7 +367,7 @@ public class EngineTest {
     public void testError() throws Throwable {
         assertTrue(engine.shouldMigrate(multiply, l, new Object[]{null}));
         try {
-            engine.invokeRemotely(multiply, l, new Object[]{null});
+            engine.invokeRemotely(new DefaultRemoteExecutionListener(), multiply, l, new Object[]{null});
         } catch(RemoteExecutionFailedException e) {
             assertEquals(4, l.size);
             assertEquals(l0, l.head);
