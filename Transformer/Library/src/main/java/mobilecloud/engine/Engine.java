@@ -275,10 +275,12 @@ public class Engine {
         Request req = new UploadApplicationExecutableRequest().setApplicationId(appName())
                 .setExecutablePath(executableProvider.provide()).setIp(host.ip)
                 .setPort(host.port);
-        Response resp = client.request(req);
-        if (!resp.isSuccess() && !(resp.getThrowable() instanceof DuplicateExecutableException)) {
-            throw resp.getThrowable();
-        }
+        try {
+            Response resp = client.request(req);
+            if (!resp.isSuccess()) {
+                throw resp.getThrowable();
+            }
+        } catch (DuplicateExecutableException e) {}
     }
 
     /**

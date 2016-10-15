@@ -3,7 +3,6 @@ package mobileclould.android.server.service;
 import android.util.Log;
 
 import java.io.InputStream;
-import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -77,7 +76,7 @@ public class ServerThread extends Thread {
                             ", status is failed, reason is " + resp.getThrowable());
                 }
                 return resp;
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 e.printStackTrace();
                 throw e;
             } finally {

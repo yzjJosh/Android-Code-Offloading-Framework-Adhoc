@@ -2,7 +2,6 @@ package example.matrixmultiply;
 
 import android.util.Log;
 
-import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.util.LinkedList;
 import java.util.List;
@@ -11,7 +10,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import mobilecloud.engine.RemoteExecutionFailedException;
 import mobilecloud.lib.Remote;
 import mobilecloud.lib.RemoteExecutionListener;
 
@@ -81,7 +79,7 @@ public class MatrixMultiply {
         }
     }
 
-    private static class Worker implements Callable<int[][]>, Serializable{
+    private static class Worker implements Callable<int[][]> {
 
         private static final String TAG = Worker.class.getSimpleName();
 
@@ -146,6 +144,7 @@ public class MatrixMultiply {
         return res;
     }
 
+    @Remote
     public static boolean equals(int[][] mat1, int[][] mat2) {
         int m1 = mat1.length, n1 = mat1[0].length;
         int m2 = mat2.length, n2 = mat2[0].length;

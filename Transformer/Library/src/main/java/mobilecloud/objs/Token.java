@@ -292,6 +292,15 @@ public class Token implements Serializable {
             return fieldsOfObjects.size();
         }
         
+        /**
+         * Check if an id is inside this snapshot
+         * @param id the id
+         * @return true if the id is inside this snapshot
+         */
+        public boolean contains(int id) {
+            return fieldsOfObjects.containsKey(id);
+        }
+        
         @Override
         public boolean equals(Object o) {
             if (o == null || o.getClass() != SnapShot.class) {

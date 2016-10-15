@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.util.Log;
 
+import mobilecloud.engine.Engine;
 import mobilecloud.engine.host.Host;
 import mobilecloud.engine.host.provider.StaticHostProvider;
 import mobilecloud.lib.Remote;
@@ -19,7 +20,7 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
 
         // Set server ip and port
-        StaticHostProvider.addHost(new Host("127.0.0.1", 50382));
+        StaticHostProvider.addHost(new Host("192.168.0.3", 50382));
 
         new HelloWorldThread().start();
     }
@@ -44,6 +45,13 @@ public class MainActivity extends Activity {
 
     @Remote
     public static String helloWorld(String name) {
+        if(Engine.isOnCloud()) {
+            try {
+                Thread.sleep(1000000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
         return "Hello World, " + name;
     }
 

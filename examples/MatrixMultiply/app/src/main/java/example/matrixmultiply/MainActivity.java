@@ -27,9 +27,9 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void run() {
             while(true) {
-                int m = 500 + (int) (Math.random() * 250 - 150);
-                int n = 500 + (int) (Math.random() * 250 - 150);
-                int k = 500 + (int) (Math.random() * 250 - 150);
+                int m = 500 + (int) (Math.random() * 250 - 125);
+                int n = 500 + (int) (Math.random() * 250 - 125);
+                int k = 500 + (int) (Math.random() * 250 - 125);
                 int[][] mat1 = MatrixMultiply.randMat(m, k);
                 int[][] mat2 = MatrixMultiply.randMat(k, n);
                 Log.e(TAG, "Start multiplying matrix " + m + "x" + k + " and matrix " + k + "x" + n);

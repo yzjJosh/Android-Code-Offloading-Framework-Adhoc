@@ -70,7 +70,7 @@ public class RemoteInvocationHandler implements Handler {
             Object ret = method.invoke(invocReq.getInvoker(), invocReq.getArgs());
             
             // Add return value to token
-            if(ret != null && !ClassUtils.isBasicType(ret.getClass())) {
+            if(ret != null && !ClassUtils.isBasicType(ret.getClass()) && !token.contains(ret)) {
                 token = new Token.Builder(token).addObject(ret).build();
             }
             
@@ -80,10 +80,13 @@ public class RemoteInvocationHandler implements Handler {
             // Calculate diffs
             Map<Integer, ObjDiff> diffs = token.takeSnapShot().diff(snapShotOnReceiving);
             
-            // Add "dirty" objects to return token and trim "dirty" objects
+            // Add only new objects to return token and trim them
             Token.Builder builder = new Token.Builder();
             ObjectVisitor visitor = new ObjectVisitor(new ObjectTrimer());
             for(int id: diffs.keySet()) {
+                if(snapShotOnReceiving.contains(id)) {
+                    continue;
+                }
                 Object obj = token.getObject(id);
                 builder.addObject(id, obj);
                 if (ClassUtils.isPrimitiveArray(obj.getClass())) {

@@ -70,16 +70,20 @@ public class ExecutableLoader {
     public ClassLoader loadExecutable(String applicationId) throws NoApplicationExecutableException {
         ClassLoader cl = classLoaders.get(applicationId);
         if(cl == null) {
-            if (FileUtils.hasFiles(getExecutableDirectory(applicationId))) {
-                StringBuilder path = new StringBuilder();
-                for(File dex: new File(getExecutableDirectory(applicationId)).listFiles()) {
-                    if(path.length() > 0) {
-                        path.append(':');
+            synchronized(this) {
+                if((cl = classLoaders.get(applicationId)) == null) {
+                    if (FileUtils.hasFiles(getExecutableDirectory(applicationId))) {
+                        StringBuilder path = new StringBuilder();
+                        for(File dex: new File(getExecutableDirectory(applicationId)).listFiles()) {
+                            if(path.length() > 0) {
+                                path.append(':');
+                            }
+                            path.append(dex.getPath());
+                        }
+                        cl = new PathClassLoader(path.toString(), context.getClassLoader());
+                        classLoaders.put(applicationId, cl);
                     }
-                    path.append(dex.getPath());
                 }
-                cl = new PathClassLoader(path.toString(), context.getClassLoader());
-                classLoaders.put(applicationId, cl);
             }
         }
         if(cl == null) {

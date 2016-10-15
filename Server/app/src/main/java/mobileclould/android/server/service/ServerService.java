@@ -16,13 +16,15 @@ public class ServerService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
 
-        // Init the server firstly
-        Server.init(this);
+        if(intent != null && thread == null) {
+            // Init the server firstly
+            Server.init(this);
 
-        // Create a server thread
-        int port = intent.getIntExtra(PORT_NUMBER_KEY, Config.PORT_NUMBER);
-        thread = new ServerThread((port));
-        thread.start();
+            // Create a server thread
+            int port = intent.getIntExtra(PORT_NUMBER_KEY, Config.PORT_NUMBER);
+            thread = new ServerThread((port));
+            thread.start();
+        }
 
         return super.onStartCommand(intent, flags, startId);
     }
