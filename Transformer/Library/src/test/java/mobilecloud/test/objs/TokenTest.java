@@ -2,17 +2,18 @@ package mobilecloud.test.objs;
 
 import static org.junit.Assert.*;
 
+import java.lang.reflect.Field;
 import java.util.Arrays;
-import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
 
+import gnu.trove.map.TIntObjectMap;
+import mobilecloud.objs.FieldReader;
 import mobilecloud.objs.ObjDiff;
+import mobilecloud.objs.ObjMap;
 import mobilecloud.objs.Token;
 import mobilecloud.objs.Token.SnapShot;
-import mobilecloud.objs.field.FieldReader;
-import mobilecloud.objs.field.FieldValue;
 
 public class TokenTest {
 
@@ -70,20 +71,32 @@ public class TokenTest {
         assertEquals(4, newToken.size());
         assertEquals(objs[2].o, newToken.getObject(3));
         SnapShot s1 = newToken.takeSnapShot();
-        Map<Integer, ObjDiff> diff = s1.diff(s);
+        TIntObjectMap<ObjDiff> diff = s1.diff(s);
         assertEquals(2, diff.size());
         assertNotNull(diff.get(2));
         assertNotNull(diff.get(3));
         objs[2].o = null;
         FieldReader reader = new FieldReader() {
             @Override
-            public Object read(FieldValue field) {
-                if(field.isValue()) {
-                    return field.get();
-                } else if(field.isIdentityHashCode()) {
+            public Object read(ObjMap map, Field f) {
+                if(map.isIdentityHashCode(f)) {
                     fail();
-                } else if(field.isObjectId()) {
-                    return newToken.getObject((Integer)field.get());
+                } else if(map.isObjectId(f)) {
+                    return newToken.getObject(map.getObjectId(f));
+                } else if(map.isValue(f)) {
+                    return map.getValue(f);
+                }
+                return null;
+            }
+
+            @Override
+            public Object read(ObjMap map, int index) {
+                if(map.isIdentityHashCode(index)) {
+                    fail();
+                } else if(map.isObjectId(index)) {
+                    return newToken.getObject(map.getObjectId(index));
+                } else if(map.isValue(index)) {
+                    return map.getValue(index);
                 }
                 return null;
             }

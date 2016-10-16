@@ -4,14 +4,13 @@ import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
-import mobilecloud.objs.field.FieldValue;
+import gnu.trove.iterator.TIntIterator;
+import gnu.trove.map.TIntIntMap;
+import gnu.trove.map.TIntObjectMap;
+import gnu.trove.map.hash.TIntIntHashMap;
+import gnu.trove.map.hash.TIntObjectHashMap;
 import mobilecloud.utils.ClassUtils;
 
 /**
@@ -20,21 +19,23 @@ import mobilecloud.utils.ClassUtils;
  */
 public class Token implements Serializable {
     private static final long serialVersionUID = 1L;
-    private final Map<Integer, Object> objects;
-    private transient Map<Integer, Integer> idMap;
+    private final TIntObjectMap<Object> objects;
+    private transient TIntIntMap idMap;
     private int nextId;
     
-    private Token(Map<Integer, Object> objects, Map<Integer, Integer> idMap, int nextId) {
+    private Token(TIntObjectMap<Object> objects, TIntIntMap idMap, int nextId) {
         this.objects = objects;
         this.idMap = idMap;
         this.nextId = nextId;
     }
     
-    private Map<Integer, Integer> getIdMap() {
+    private TIntIntMap getIdMap() {
         if(idMap == null) {
-            idMap = new HashMap<>();
-            for(Map.Entry<Integer, Object> entry: objects.entrySet()) {
-                idMap.put(System.identityHashCode(entry.getValue()), entry.getKey());
+            idMap = new TIntIntHashMap();
+            TIntIterator it = objects.keySet().iterator();
+            while(it.hasNext()) {
+                int id = it.next();
+                idMap.put(System.identityHashCode(objects.get(id)), id);
             }
         }
         return idMap;
@@ -85,7 +86,7 @@ public class Token implements Serializable {
                 }
                 return !ClassUtils.isPrimitiveArray(obj.getClass());
             }
-        }).withObjects(objects.values());
+        }).withObjects(objects.valueCollection());
         visitor.visitRecursively();
         return this;
     }
@@ -128,11 +129,11 @@ public class Token implements Serializable {
     }
     
     /**
-     * Get a list of ids inside this map
-     * @return the ids
+     * Get a iterator of ids inside this map
+     * @return the iterator of ids
      */
-    public List<Integer> ids() {
-        return new LinkedList<>(objects.keySet());
+    public TIntIterator ids() {
+        return objects.keySet().iterator();
     }
     
     /**
@@ -147,16 +148,18 @@ public class Token implements Serializable {
         private static final long serialVersionUID = 1L;
 
         // Stores the graph of objects inside this token
-        private final Map<Integer, Map<Object, FieldValue>> fieldsOfObjects;
+        private final TIntObjectMap<ObjMap> fieldsOfObjects;
         
         private SnapShot(final Token token) {
-            this.fieldsOfObjects = new HashMap<>();
+            this.fieldsOfObjects = new TIntObjectHashMap<>();
             
             // Build the fields graph
-            for(int id: token.objects.keySet()) {
-                final HashMap<Object, FieldValue> fields = new HashMap<>();
-                fieldsOfObjects.put(id, fields);
+            TIntIterator it = token.objects.keySet().iterator();
+            while(it.hasNext()) {
+                int id = it.next();
                 Object obj = token.getObject(id);
+                final ObjMap fields = new ObjMap(obj.getClass());
+                fieldsOfObjects.put(id, fields);
                 
                 //Create a visitor to visit scan all fields of this object
                 ObjectVisitor visitor = new ObjectVisitor(new OnObjectVisitedListener() {
@@ -164,7 +167,13 @@ public class Token implements Serializable {
                     public boolean onObjectVisited(Object obj, Object array, int index) {
                         if(obj != null) {
                             //For array, we use index as the key
-                            fields.put(index, createField(token, obj));
+                            if(ClassUtils.isBasicType(obj.getClass())) {
+                                fields.putValue(index, obj);
+                            } else if(token.contains(obj)) {
+                                fields.putObjectId(index, token.getId(obj));
+                            } else {
+                                fields.putIdentityHashCode(index, System.identityHashCode(obj));
+                            }
                         }
                         return true;
                     }
@@ -181,25 +190,18 @@ public class Token implements Serializable {
                             return false;
                         }
                         if(obj != null) {
-                            fields.put(field.getName(),createField(token, obj));
+                            if(ClassUtils.isBasicType(obj.getClass())) {
+                                fields.putValue(field, obj);
+                            } else if(token.contains(obj)) {
+                                fields.putObjectId(field, token.getId(obj));
+                            } else {
+                                fields.putIdentityHashCode(field, System.identityHashCode(obj));
+                            }
                         }
                         return true;
                     }
                 }).withObject(obj);
                 visitor.visitFields();
-            }
-        }
-        
-        private FieldValue createField(Token token, Object val) {
-            if(ClassUtils.isBasicType(val.getClass())) {
-                // val is basic type, record its value directly
-                return FieldValue.newValue(val);
-            } else if(token.contains(val)) {
-                // id is available, store is an id
-                return FieldValue.newObjectId(token.getId(val));
-            } else {
-                // id is unavailable, store the identity hash code
-                return FieldValue.newIdentityHashCode(System.identityHashCode(val));
             }
         }
         
@@ -215,10 +217,13 @@ public class Token implements Serializable {
          *            this snapshot will be analyzed.
          * @return the diffs, where key is object id, value is difference
          */
-        public Map<Integer, ObjDiff> diff(SnapShot snapshot) {
-            Map<Integer, ObjDiff> res = new HashMap<>();
-            for(int id: fieldsOfObjects.keySet()) {
-                Map<Object, FieldValue> diff = diff(this.getFields(id), snapshot == null? null: snapshot.getFields(id));
+        public TIntObjectMap<ObjDiff> diff(SnapShot snapshot) {
+            TIntObjectMap<ObjDiff> res = new TIntObjectHashMap<>();
+            TIntIterator it = fieldsOfObjects.keySet().iterator();
+            while(it.hasNext()) {
+                int id = it.next();
+                ObjMap cur = fieldsOfObjects.get(id);
+                ObjMap diff = diff(cur, snapshot == null? null: snapshot.getFields(id), cur.getRepresentType());
                 if(!diff.isEmpty()) {
                     res.put(id, new ObjDiff(diff));
                 }
@@ -227,29 +232,53 @@ public class Token implements Serializable {
         }
         
         //Diff which can transfer b -> a
-        private Map<Object, FieldValue> diff(Map<Object, FieldValue> a, Map<Object, FieldValue> b) {
-            Map<Object, FieldValue> diff = new HashMap<>();
+        private ObjMap diff(ObjMap a, ObjMap b, Class<?> type) {
+            ObjMap diff = new ObjMap(type);
             if(a != null) {
-                for(Object field: a.keySet()) {
-                    FieldValue aVal = get(a, field);
-                    FieldValue bVal = get(b, field);
-                    if(!Objects.equals(aVal, bVal)) {
-                        diff.put(field, aVal);
+                TIntIterator it = a.keys();
+                while(it.hasNext()) {
+                    int index = it.next();
+                    if(!equals(a, b, index)) {
+                        copyEntry(diff, a, index);
                     }
                 }
             }
             if(b != null) {
-                for(Object field: b.keySet()) {
-                    if(get(a, field) == null) {
-                        diff.put(field, FieldValue.newValue(null));
+                TIntIterator it = b.keys();
+                while(it.hasNext()) {
+                    int index = it.next();
+                    if(a == null || !a.containsKey(index)) {
+                        diff.putValue(index, null);
                     }
                 }
             }
             return diff;
         }
         
-        private FieldValue get(Map<Object, FieldValue> map, Object key) {
-            return map == null? null: map.get(key);
+        private boolean equals(ObjMap a, ObjMap b, int index) {
+            if(a == b) {
+                return true;
+            } else if (a == null || b == null){
+                return false;
+            } else if (a.isIdentityHashCode(index) && b.isIdentityHashCode(index)) {
+                return a.getIdentityHashCode(index) == b.getIdentityHashCode(index);
+            } else if (a.isObjectId(index) && b.isObjectId(index)) {
+                return a.getObjectId(index) == b.getObjectId(index);
+            } else if(a.isValue(index) && b.isValue(index)) {
+                return Objects.equals(a.getValue(index), b.getValue(index));
+            } else {
+                return false;
+            }
+        }
+        
+        private void copyEntry(ObjMap target, ObjMap source, int index) {
+            if(source.isIdentityHashCode(index)) {
+                target.putIdentityHashCode(index, source.getIdentityHashCode(index));
+            } else if(source.isObjectId(index)) {
+                target.putObjectId(index, source.getObjectId(index));
+            } else if(source.isValue(index)) {
+                target.putValue(index, source.getValue(index));
+            }
         }
         
         /**
@@ -257,31 +286,16 @@ public class Token implements Serializable {
          * @param i the id of this object
          * @return the fields, or null if snapshot does not contains i
          */
-        public Map<Object, FieldValue> getFields(int i) {
+        public ObjMap getFields(int i) {
             return fieldsOfObjects.get(i);
         }
         
         /**
-         * Get the field value of an object
-         * @param i the id of this object
-         * @param field the name of a field or index of an array
-         * @return the field value, or null if the field does not exist or is a null pointer or this snapshot does not contains i
+         * Get an iterator of ids inside this snapshots
+         * @return the iterator ids of objects
          */
-        public FieldValue getField(int i, Object field) {
-            Map<Object, FieldValue> fields = getFields(i);
-            if(fields == null) {
-                return null;
-            } else {
-                return fields.get(field);
-            }
-        }
-        
-        /**
-         * Get a list of ids of objects
-         * @return the ids of objects
-         */
-        public List<Integer> ids() {
-            return new LinkedList<>(fieldsOfObjects.keySet());
+        public TIntIterator ids() {
+            return fieldsOfObjects.keySet().iterator();
         }
         
         /**
@@ -319,22 +333,23 @@ public class Token implements Serializable {
     }   
     
     public static class Builder {
-        private Map<Integer, Object> objects = new HashMap<>();
-        private Map<Integer, Integer> idMap = new HashMap<>();
+        private TIntObjectMap<Object> objects;
+        private TIntIntMap idMap;
         private int nextId = 0;
         
-        public Builder() {}
+        public Builder() {
+            this.objects = new TIntObjectHashMap<>();
+            this.idMap = new TIntIntHashMap();
+        }
         
         /**
          * Create a new builder which contains all objects inside a given token
          * @param token the token
          */
         public Builder(Token token) {
-            this.objects = new HashMap<>(token.objects);
-            this.idMap = new HashMap<>(token.idMap);
-            if(!objects.isEmpty()) {
-                this.nextId = Collections.max(objects.keySet()) + 1;
-            }
+            this.objects = new TIntObjectHashMap<>(token.objects);
+            this.idMap = new TIntIntHashMap(token.idMap);
+            this.nextId = token.nextId;
         }
         
         public Builder addObject(Object obj) {

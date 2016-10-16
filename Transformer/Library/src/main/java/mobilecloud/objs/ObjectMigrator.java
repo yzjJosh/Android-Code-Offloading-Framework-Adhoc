@@ -1,9 +1,9 @@
 package mobilecloud.objs;
 
-import java.util.Map;
+import java.lang.reflect.Field;
 
-import mobilecloud.objs.field.FieldReader;
-import mobilecloud.objs.field.FieldValue;
+import gnu.trove.iterator.TIntIterator;
+import gnu.trove.map.TIntObjectMap;
 import mobilecloud.utils.ClassUtils;
 
 /**
@@ -40,10 +40,12 @@ public class ObjectMigrator {
      * @param remoteToken the token which contains objects to synchronize 
      * @param diffs the diff between local objects and remote objects
      */
-    public void sync(Token remoteToken, Map<Integer, ObjDiff> diffs) {
+    public void sync(Token remoteToken, TIntObjectMap<ObjDiff> diffs) {
         this.remoteToken = remoteToken;
         TokenFieldReader reader = new TokenFieldReader();
-        for(int id: diffs.keySet()) {
+        TIntIterator it = diffs.keySet().iterator();
+        while(it.hasNext()) {
+            int id = it.next();
             Object obj = getObjectById(id);
             ObjDiff diff = diffs.get(id);
             try {
@@ -93,13 +95,25 @@ public class ObjectMigrator {
     private class TokenFieldReader implements FieldReader {
 
         @Override
-        public Object read(FieldValue field) {
-            if(field.isValue()) {
-                return field.get();
-            } else if(field.isObjectId()) {
-                return getObjectById((Integer) field.get());
-            } else if(field.isIdentityHashCode()) {
-                throw new IllegalArgumentException(field.toString());
+        public Object read(ObjMap map, Field f) {
+            if (map.isValue(f)) {
+                return map.getValue(f);
+            } else if (map.isObjectId(f)) {
+                return getObjectById(map.getObjectId(f));
+            } else if (map.isIdentityHashCode(f)) {
+                throw new IllegalArgumentException(String.valueOf(map.getIdentityHashCode(f)));
+            }
+            return null;
+        }
+
+        @Override
+        public Object read(ObjMap map, int index) {
+            if (map.isValue(index)) {
+                return map.getValue(index);
+            } else if (map.isObjectId(index)) {
+                return getObjectById(map.getObjectId(index));
+            } else if (map.isIdentityHashCode(index)) {
+                throw new IllegalArgumentException(String.valueOf(map.getIdentityHashCode(index)));
             }
             return null;
         }

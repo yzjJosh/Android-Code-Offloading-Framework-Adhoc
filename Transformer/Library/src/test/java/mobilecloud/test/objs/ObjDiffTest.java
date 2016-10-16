@@ -2,15 +2,14 @@ package mobilecloud.test.objs;
 
 import static org.junit.Assert.*;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.lang.reflect.Field;
 
 import org.junit.Before;
 import org.junit.Test;
 
+import mobilecloud.objs.FieldReader;
 import mobilecloud.objs.ObjDiff;
-import mobilecloud.objs.field.FieldReader;
-import mobilecloud.objs.field.FieldValue;
+import mobilecloud.objs.ObjMap;
 
 public class ObjDiffTest {
     
@@ -24,11 +23,20 @@ public class ObjDiffTest {
     private FieldReader reader = new FieldReader() {
 
         @Override
-        public Object read(FieldValue field) {
-            if(field.isObjectId()) {
-                return objs[(Integer) field.get()];
+        public Object read(ObjMap map, Field f) {
+            if(map.isObjectId(f)) {
+                return objs[map.getObjectId(f)];
             } else {
-                return field.get();
+                return map.getValue(f);
+            }
+        }
+
+        @Override
+        public Object read(ObjMap map, int index) {
+            if(map.isObjectId(index)) {
+                return objs[map.getObjectId(index)];
+            } else {
+                return map.getValue(index);
             }
         }
         
@@ -41,9 +49,9 @@ public class ObjDiffTest {
     
     @Test
     public void test0 () throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
-        Map<Object, FieldValue> transform = new HashMap<>();
-        transform.put("o", FieldValue.newValue("Hello World"));
-        transform.put("i", FieldValue.newValue(101));
+        ObjMap transform = new ObjMap(TestClass.class);
+        transform.putValue(TestClass.class.getDeclaredField("o"), "Hello World");
+        transform.putValue(TestClass.class.getDeclaredField("i"), 101);
         diff = new ObjDiff(transform);
         diff.apply(objs[0], reader);
         TestClass res = (TestClass) objs[0];
@@ -55,8 +63,8 @@ public class ObjDiffTest {
     public void test1() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
         TestClass t = new TestClass();
         t.o = new Object();
-        Map<Object, FieldValue> transform = new HashMap<>();
-        transform.put("o", FieldValue.newValue(null));
+        ObjMap transform = new ObjMap(TestClass.class);
+        transform.putValue(TestClass.class.getDeclaredField("o"), null);
         diff = new ObjDiff(transform);
         diff.apply(t, reader);
         assertNull(t.o);
@@ -65,8 +73,8 @@ public class ObjDiffTest {
     @Test
     public void test2()
             throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
-        Map<Object, FieldValue> transform = new HashMap<>();
-        transform.put("o", FieldValue.newObjectId(2));
+        ObjMap transform = new ObjMap(TestClass.class);
+        transform.putObjectId(TestClass.class.getDeclaredField("o"), 2);
         diff = new ObjDiff(transform);
         diff.apply(objs[0], reader);
         assertEquals(objs[2], ((TestClass) objs[0]).o);
@@ -74,11 +82,11 @@ public class ObjDiffTest {
     
     @Test
     public void test3() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
-        Map<Object, FieldValue> transform = new HashMap<>();
+        ObjMap transform = new ObjMap(Object[].class);
         Object obj2 = objs[2];
-        transform.put(0, FieldValue.newObjectId(2));
-        transform.put(1, FieldValue.newValue("test"));
-        transform.put(2, FieldValue.newValue(null));
+        transform.putObjectId(0, 2);
+        transform.putValue(1, "test");
+        transform.putValue(2, null);
         diff = new ObjDiff(transform);
         diff.apply(objs, reader);
         assertEquals(obj2, objs[0]);

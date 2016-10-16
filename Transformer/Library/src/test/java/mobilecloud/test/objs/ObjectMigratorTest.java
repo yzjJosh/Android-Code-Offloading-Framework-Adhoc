@@ -8,11 +8,12 @@ import java.io.Serializable;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
 
+import gnu.trove.iterator.TIntIterator;
+import gnu.trove.map.TIntObjectMap;
 import mobilecloud.objs.ObjDiff;
 import mobilecloud.objs.ObjectMigrator;
 import mobilecloud.objs.ObjectVisitor;
@@ -123,11 +124,11 @@ public class ObjectMigratorTest {
         return (Object[]) is.readObject();
     }
     
-    private Map<Integer, ObjDiff> getDiffs(Token token, SnapShot snapshot) {
+    private TIntObjectMap<ObjDiff> getDiffs(Token token, SnapShot snapshot) {
         return token.takeSnapShot().diff(snapshot);
     }
     
-    private Token buildBackToken(Token token, Map<Integer, ObjDiff> diffs) {
+    private Token buildBackToken(Token token, TIntObjectMap<ObjDiff> diffs) {
         Token.Builder builder = new Token.Builder();
         ObjectVisitor visitor = new ObjectVisitor(new OnObjectVisitedListener() {
             @Override
@@ -156,7 +157,9 @@ public class ObjectMigratorTest {
                 return true;
             }
         });
-        for(int id: diffs.keySet()) {
+        TIntIterator it = diffs.keySet().iterator();
+        while(it.hasNext()){
+            int id = it.next();
             builder.addObject(id, token.getObject(id));
             visitor.withObject(token.getObject(id));
         }
@@ -206,11 +209,11 @@ public class ObjectMigratorTest {
         assertEquals(5, cloudList.size);
         assertNull(l3.next);
         cloudToken = cloudToken.expand();
-        Map<Integer, ObjDiff> cloudDiffs = getDiffs(cloudToken, cloudSnapShot);
+        TIntObjectMap<ObjDiff> cloudDiffs = getDiffs(cloudToken, cloudSnapShot);
         Token cloudBackToken = buildBackToken(cloudToken, cloudDiffs);
         Object[] cloudBackObjs = sendViaNetWork(cloudBackToken, cloudDiffs);
         Token backToken = (Token) cloudBackObjs[0];
-        Map<Integer, ObjDiff> backDiff = (Map<Integer, ObjDiff>) cloudBackObjs[1];
+        TIntObjectMap<ObjDiff> backDiff = (TIntObjectMap<ObjDiff>) cloudBackObjs[1];
         List prevL = l;
         ListNode prevL0 = l0;
         ListNode prevL1 = l1;
@@ -248,11 +251,11 @@ public class ObjectMigratorTest {
         assertEquals(4, l.size);
         assertEquals(0, l.head.val);
         cloudToken = cloudToken.expand();
-        Map<Integer, ObjDiff> cloudDiffs = getDiffs(cloudToken, cloudSnapShot);
+        TIntObjectMap<ObjDiff> cloudDiffs = getDiffs(cloudToken, cloudSnapShot);
         Token cloudBackToken = buildBackToken(cloudToken, cloudDiffs);
         Object[] cloudBackObjs = sendViaNetWork(cloudBackToken, cloudDiffs);
         Token backToken = (Token) cloudBackObjs[0];
-        Map<Integer, ObjDiff> backDiff = (Map<Integer, ObjDiff>) cloudBackObjs[1];
+        TIntObjectMap<ObjDiff> backDiff = (TIntObjectMap<ObjDiff>) cloudBackObjs[1];
         List prevL = l;
         ListNode prevL0 = l0;
         ListNode prevL1 = l1;
@@ -287,11 +290,11 @@ public class ObjectMigratorTest {
         cloudL4.next = cloudL0;
         assertNull(l3.next);
         cloudToken = new Token.Builder(cloudToken).addObject(cloudL4).build().expand();
-        Map<Integer, ObjDiff> cloudDiffs = getDiffs(cloudToken, cloudSnapShot);
+        TIntObjectMap<ObjDiff> cloudDiffs = getDiffs(cloudToken, cloudSnapShot);
         Token cloudBackToken = buildBackToken(cloudToken, cloudDiffs);
         Object[] cloudBackObjs = sendViaNetWork(cloudBackToken, cloudDiffs);
         Token backToken = (Token) cloudBackObjs[0];
-        Map<Integer, ObjDiff> backDiff = (Map<Integer, ObjDiff>) cloudBackObjs[1];
+        TIntObjectMap<ObjDiff> backDiff = (TIntObjectMap<ObjDiff>) cloudBackObjs[1];
         ListNode prevL0 = l0;
         ListNode prevL1 = l1;
         ListNode prevL2 = l2;
@@ -331,11 +334,11 @@ public class ObjectMigratorTest {
         SnapShot cloudSnapShot = cloudToken.takeSnapShot();
         cloudList.addNodes(cloudNodes);
         cloudToken = cloudToken.expand();
-        Map<Integer, ObjDiff> cloudDiffs = getDiffs(cloudToken, cloudSnapShot);
+        TIntObjectMap<ObjDiff> cloudDiffs = getDiffs(cloudToken, cloudSnapShot);
         Token cloudBackToken = buildBackToken(cloudToken, cloudDiffs);
         Object[] cloudBackObjs = sendViaNetWork(cloudBackToken, cloudDiffs);
         Token backToken = (Token) cloudBackObjs[0];
-        Map<Integer, ObjDiff> backDiff = (Map<Integer, ObjDiff>) cloudBackObjs[1];
+        TIntObjectMap<ObjDiff> backDiff = (TIntObjectMap<ObjDiff>) cloudBackObjs[1];
         List prevL = l;
         ListNode prevL0 = l0;
         ListNode prevL1 = l1;
@@ -375,11 +378,11 @@ public class ObjectMigratorTest {
         SnapShot cloudSnapShot = cloudToken.takeSnapShot();
         cloudArray.n[0] = cloudArray.n[1] = cloudArray.n[2] = cloudArray.n[3];
         cloudToken = cloudToken.expand();
-        Map<Integer, ObjDiff> cloudDiffs = getDiffs(cloudToken, cloudSnapShot);
+        TIntObjectMap<ObjDiff> cloudDiffs = getDiffs(cloudToken, cloudSnapShot);
         Token cloudBackToken = buildBackToken(cloudToken, cloudDiffs);
         Object[] cloudBackObjs = sendViaNetWork(cloudBackToken, cloudDiffs);
         Token backToken = (Token) cloudBackObjs[0];
-        Map<Integer, ObjDiff> backDiff = (Map<Integer, ObjDiff>) cloudBackObjs[1];
+        TIntObjectMap<ObjDiff> backDiff = (TIntObjectMap<ObjDiff>) cloudBackObjs[1];
         migrator.sync(backToken, backDiff);
         assertEquals(l3, t.n[0]);
         assertEquals(l3, t.n[1]);
@@ -406,11 +409,11 @@ public class ObjectMigratorTest {
         cloudArray.n = cloudNodes;
         cloudArray.n[0] = cloudArray.n[1] = cloudArray.n[2] = cloudArray.n[3];
         cloudToken = cloudToken.expand();
-        Map<Integer, ObjDiff> cloudDiffs = getDiffs(cloudToken, cloudSnapShot);
+        TIntObjectMap<ObjDiff> cloudDiffs = getDiffs(cloudToken, cloudSnapShot);
         Token cloudBackToken = buildBackToken(cloudToken, cloudDiffs);
         Object[] cloudBackObjs = sendViaNetWork(cloudBackToken, cloudDiffs);
         Token backToken = (Token) cloudBackObjs[0];
-        Map<Integer, ObjDiff> backDiff = (Map<Integer, ObjDiff>) cloudBackObjs[1];
+        TIntObjectMap<ObjDiff> backDiff = (TIntObjectMap<ObjDiff>) cloudBackObjs[1];
         migrator.sync(backToken, backDiff);
         assertEquals(l3, t.n[0]);
         assertEquals(l3, t.n[1]);
@@ -433,10 +436,10 @@ public class ObjectMigratorTest {
         SnapShot cloudSnapShot = cloudToken.takeSnapShot();
         cloudList.add(100);
         cloudToken = cloudToken.expand();
-        Map<Integer, ObjDiff> cloudDiffs = getDiffs(cloudToken, cloudSnapShot);
+        TIntObjectMap<ObjDiff> cloudDiffs = getDiffs(cloudToken, cloudSnapShot);
         Object[] cloudBackObjs = sendViaNetWork(cloudToken, cloudDiffs, cloudList);
         Token backToken = (Token) cloudBackObjs[0];
-        Map<Integer, ObjDiff> backDiff = (Map<Integer, ObjDiff>) cloudBackObjs[1];
+        TIntObjectMap<ObjDiff> backDiff = (TIntObjectMap<ObjDiff>) cloudBackObjs[1];
         List backList = (List) cloudBackObjs[2];
         migrator.sync(backToken, backDiff);
         assertEquals(l, migrator.getObject(backList));

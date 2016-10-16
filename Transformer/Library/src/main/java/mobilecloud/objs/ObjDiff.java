@@ -3,10 +3,9 @@ package mobilecloud.objs;
 import java.io.Serializable;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
-import java.util.Map;
+import java.lang.reflect.Modifier;
 
-import mobilecloud.objs.field.FieldReader;
-import mobilecloud.objs.field.FieldValue;
+import gnu.trove.iterator.TIntIterator;
 
 /**
  * Object diff represents the difference of an object's fields
@@ -14,9 +13,9 @@ import mobilecloud.objs.field.FieldValue;
 public class ObjDiff implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    private Map<Object, FieldValue> diffMap;
+    private ObjMap diffMap;
 
-    public ObjDiff(Map<Object, FieldValue> diffMap) {
+    public ObjDiff(ObjMap diffMap) {
         this.diffMap = diffMap;
     }
 
@@ -32,13 +31,22 @@ public class ObjDiff implements Serializable {
     public void apply(Object obj, FieldReader reader)
             throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
         Class<?> clazz = obj.getClass();
-        for (Object field : diffMap.keySet()) {
-            if(clazz.isArray()) {
-                Array.set(obj, (Integer) field, reader.read(diffMap.get(field)));
-            } else {
-                Field f = clazz.getDeclaredField((String) field);
-                f.setAccessible(true);
-                f.set(obj, reader.read(diffMap.get(field)));
+        if(clazz.isArray()) {
+            TIntIterator it = diffMap.keys();
+            while(it.hasNext()) {
+                int index = it.next();
+                Array.set(obj, index, reader.read(diffMap, index));
+            }
+        } else {
+            for(Field f: clazz.getDeclaredFields()) {
+                int modifier = f.getModifiers();
+                if(Modifier.isStatic(modifier) || Modifier.isFinal(modifier)) {
+                    continue;
+                }
+                if(diffMap.containsKey(f)) {
+                    f.setAccessible(true);
+                    f.set(obj, reader.read(diffMap, f));
+                }
             }
         }
     }

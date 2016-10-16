@@ -5,8 +5,9 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.Map;
 
+import gnu.trove.iterator.TIntIterator;
+import gnu.trove.map.TIntObjectMap;
 import mobilecloud.api.RemoteInvocationRequest;
 import mobilecloud.api.RemoteInvocationResponse;
 import mobilecloud.api.Request;
@@ -78,12 +79,14 @@ public class RemoteInvocationHandler implements Handler {
             token.expand();
             
             // Calculate diffs
-            Map<Integer, ObjDiff> diffs = token.takeSnapShot().diff(snapShotOnReceiving);
+            TIntObjectMap<ObjDiff> diffs = token.takeSnapShot().diff(snapShotOnReceiving);
             
             // Add only new objects to return token and trim them
             Token.Builder builder = new Token.Builder();
             ObjectVisitor visitor = new ObjectVisitor(new ObjectTrimer());
-            for(int id: diffs.keySet()) {
+            TIntIterator it = diffs.keySet().iterator();
+            while(it.hasNext()) {
+                int id = it.next();
                 if(snapShotOnReceiving.contains(id)) {
                     continue;
                 }

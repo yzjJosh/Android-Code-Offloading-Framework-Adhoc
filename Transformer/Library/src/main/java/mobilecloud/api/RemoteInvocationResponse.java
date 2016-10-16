@@ -1,22 +1,21 @@
 package mobilecloud.api;
 
-import java.util.Map;
-
+import gnu.trove.map.TIntObjectMap;
 import mobilecloud.objs.ObjDiff;
 import mobilecloud.objs.Token;
 
 public class RemoteInvocationResponse extends Response {
     private static final long serialVersionUID = 1L;
 
-    private Map<Integer, ObjDiff> diffs;
+    private TIntObjectMap<ObjDiff> diffs;
     private Token token;
     private Object returnVal;
 
-    public Map<Integer, ObjDiff> getDiffs() {
+    public TIntObjectMap<ObjDiff> getDiffs() {
         return diffs;
     }
 
-    public RemoteInvocationResponse setDiffs(Map<Integer, ObjDiff> diffs) {
+    public RemoteInvocationResponse setDiffs(TIntObjectMap<ObjDiff> diffs) {
         this.diffs = diffs;
         return this;
     }
