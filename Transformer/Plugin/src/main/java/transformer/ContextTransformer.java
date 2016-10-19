@@ -25,20 +25,20 @@ public class ContextTransformer implements IClassTransformer  {
 
     @Override
     public boolean shouldTransform(CtClass ctClass) throws JavassistBuildException {
-        try {
-            return isContext(ctClass);
-        } catch (NotFoundException e) {
-            throw new JavassistBuildException(e);
-        }
+        return isContext(ctClass);
     }
     
-    private boolean isContext(CtClass c) throws NotFoundException {
+    private boolean isContext(CtClass c) {
         if(c == null) {
             return false;
         } if(c.getName().equals(Context.class.getName())) {
             return true;
         } else {
-            return isContext(c.getSuperclass());
+            try {
+                return isContext(c.getSuperclass());
+            } catch (NotFoundException e) {
+                return false;
+            }
         }
     }
     

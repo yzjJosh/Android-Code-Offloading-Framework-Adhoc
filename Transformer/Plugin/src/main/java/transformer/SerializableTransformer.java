@@ -4,7 +4,6 @@ import java.io.Serializable;
 
 import javassist.ClassPool;
 import javassist.CtClass;
-import javassist.Modifier;
 import javassist.NotFoundException;
 import javassist.build.IClassTransformer;
 import javassist.build.JavassistBuildException;
@@ -23,16 +22,16 @@ public class SerializableTransformer implements IClassTransformer {
 
     @Override
     public void applyTransformations(CtClass ctClass) throws JavassistBuildException {
+        System.out.println("Implementing java.io.Serializable for class " + ctClass.getName());
         ctClass.addInterface(serializable);
     }
 
     @Override
     public boolean shouldTransform(CtClass ctClass) throws JavassistBuildException {
         try {
-            return !ctClass.isInterface() && !Modifier.isAbstract(ctClass.getModifiers())
-                    && !ctClass.subtypeOf(serializable);
+            return !ctClass.isInterface() && !ctClass.subtypeOf(serializable);
         } catch (NotFoundException e) {
-            throw new JavassistBuildException(e);
+            return true;
         }
 
     }
