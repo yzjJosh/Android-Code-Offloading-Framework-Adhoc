@@ -62,9 +62,24 @@ public class RemoteMethodTransformer implements IClassTransformer {
     }
     
     private void transformMethod(CtMethod method) throws CannotCompileException, NotFoundException {
-        String code = generateRemoteExecutionCode(method);
-        System.out.println("Generating code for method " + method.getLongName() + ": \n" + code);
-        method.insertBefore(code);
+        
+        //Firstly rename this method
+        String methodName = method.getName();
+        String newName = "__" + methodName + "Body__";
+        System.out.println("Renaming method " + method.getLongName() + " to " + newName + "...");
+        method.setName(newName);
+        
+        //Create a new wrapper method which invokes real method
+        String wrapperMethodContent = generateWrapperMethod(methodName, method);
+        System.out.println("Generating wrapper method for method " + methodName + ":\n" + wrapperMethodContent);
+        CtClass clazz = method.getDeclaringClass();
+        CtMethod wrapperMethod = CtMethod.make(wrapperMethodContent, clazz);
+        clazz.addMethod(wrapperMethod);
+        
+        //Insert code to wrapper method 
+        String insertCode = generateRemoteExecutionCode(method);
+        System.out.println("Insert code to wrapper method " + wrapperMethod.getLongName() + ": \n" + insertCode);
+        wrapperMethod.insertBefore(insertCode);
     }
     
     private String generateRemoteExecutionCode(CtMethod method) throws NotFoundException {
@@ -201,6 +216,38 @@ public class RemoteMethodTransformer implements IClassTransformer {
         } else {
             code.append("(" + returnType.getName() + ")" + resultVarName);
         }
+        return code.toString();
+    }
+    
+    private String generateWrapperMethod(String name, CtMethod realMethod) throws NotFoundException {
+        StringBuilder code = new StringBuilder();
+        int modifier = realMethod.getModifiers();
+        code.append(Modifier.toString(modifier));
+        code.append(" " + realMethod.getReturnType().getName());
+        code.append(" " + name);
+        code.append("(");
+        CtClass[] paramTypes = realMethod.getParameterTypes();
+        for (int i = 0; i < paramTypes.length; i++) {
+            if (i > 0) {
+                code.append(", ");
+            }
+            code.append(paramTypes[i].getName() + " arg" + i);
+        }
+        code.append(") {\n");
+        code.append("    ");
+        CtClass returnType = realMethod.getReturnType();
+        if (!returnType.getName().equals("void")) {
+            code.append("return ");
+        }
+        code.append(realMethod.getName() + "(");
+        for (int i = 0; i < paramTypes.length; i++) {
+            if (i > 0) {
+                code.append(", ");
+            }
+            code.append("arg" + i);
+        }
+        code.append(");\n");
+        code.append("}");
         return code.toString();
     }
     

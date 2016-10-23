@@ -81,16 +81,8 @@ public abstract class Sprite {
     /**
      * Modifies the x and y coordinates according to the speedX and speedY value
      */
-    public void move(){
-        // changeToNextFrame();
-        // Its more efficient if only the classes that need this implement it in their move method.
-        
-        doMove();
-    }
-
-
     @Remote(listener = RemoteInvocationListener.class)
-    private void doMove() {
+    public void move() {
         x+= speedX;
         y+= speedY;
     }
