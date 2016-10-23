@@ -11,7 +11,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import mobilecloud.lib.Remote;
-import mobilecloud.lib.RemoteExecutionListener;
+import mobilecloud.lib.listener.RemoteExecutionListener;
 
 public class MatrixMultiply {
 

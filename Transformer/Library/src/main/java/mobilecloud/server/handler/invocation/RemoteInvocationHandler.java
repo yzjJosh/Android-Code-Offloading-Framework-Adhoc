@@ -12,6 +12,7 @@ import mobilecloud.api.RemoteInvocationRequest;
 import mobilecloud.api.RemoteInvocationResponse;
 import mobilecloud.api.Request;
 import mobilecloud.api.Response;
+import mobilecloud.lib.Ignore;
 import mobilecloud.objs.ObjDiff;
 import mobilecloud.objs.ObjectVisitor;
 import mobilecloud.objs.OnObjectVisitedListener;
@@ -88,13 +89,21 @@ public class RemoteInvocationHandler implements Handler {
             while(it.hasNext()) {
                 int id = it.next();
                 if(snapShotOnReceiving.contains(id)) {
+                    // If an old object is dirty, we do not need to send it back
+                    // because we already have a client-side copy of it. We can
+                    // recover it using the diff.
                     continue;
                 }
+                
+                // Add a new object to back token
                 Object obj = token.getObject(id);
                 builder.addObject(id, obj);
+                
                 if (ClassUtils.isPrimitiveArray(obj.getClass())) {
-                    // If this obejct is a primitive array, we ignore it because
-                    // we can never set its element to null
+                    // If this obejct is a primitive array, it is safe to remove
+                    // the diff of this object, because its content will never
+                    // point to client-side objects.
+                    it.remove();
                     continue;
                 }
                 visitor.withObject(obj);
@@ -124,8 +133,8 @@ public class RemoteInvocationHandler implements Handler {
         @Override
         public boolean onObjectVisited(Object obj, Object from, Field field) {
             int modifier = field.getModifiers();
-            if (Modifier.isStatic(modifier) || Modifier.isFinal(modifier)) {
-                // ignore static and final fields
+            if (Modifier.isStatic(modifier) || Modifier.isFinal(modifier) || field.isAnnotationPresent(Ignore.class)) {
+                // ignore static, ignored, and final fields
                 return false;
             }
             if (field.getType().isPrimitive()) {

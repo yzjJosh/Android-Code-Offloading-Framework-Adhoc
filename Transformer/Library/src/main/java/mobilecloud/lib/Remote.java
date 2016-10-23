@@ -6,6 +6,9 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+import mobilecloud.lib.listener.DefaultRemoteExecutionListener;
+import mobilecloud.lib.listener.RemoteExecutionListener;
+
 /**
  * Annotation used to mark a method as remotely executable
  */

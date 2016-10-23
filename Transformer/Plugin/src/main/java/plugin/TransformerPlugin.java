@@ -6,6 +6,7 @@ import com.github.stephanenicolas.morpheus.AbstractMorpheusPlugin;
 
 import javassist.build.IClassTransformer;
 import transformer.ContextTransformer;
+import transformer.IgnoredFieldsTransformer;
 import transformer.RemoteMethodTransformer;
 import transformer.SerializableTransformer;
 
@@ -24,7 +25,7 @@ public class TransformerPlugin extends AbstractMorpheusPlugin {
     @Override
     public IClassTransformer[] getTransformers(Project project) {
         return new IClassTransformer[] { new RemoteMethodTransformer(), new ContextTransformer(),
-                new SerializableTransformer() };
+                new SerializableTransformer(), new IgnoredFieldsTransformer() };
     }
 
 }

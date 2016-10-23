@@ -4,10 +4,12 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.util.Log;
 
-import mobilecloud.engine.Engine;
+import java.lang.reflect.Method;
+
 import mobilecloud.engine.host.Host;
 import mobilecloud.engine.host.provider.StaticHostProvider;
 import mobilecloud.lib.Remote;
+import mobilecloud.lib.listener.RemoteExecutionListener;
 
 
 public class MainActivity extends Activity {
@@ -20,7 +22,7 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
 
         // Set server ip and port
-        StaticHostProvider.addHost(new Host("192.168.0.3", 50382));
+        StaticHostProvider.addHost(new Host("127.0.0.1", 50382));
 
         new HelloWorldThread().start();
     }
@@ -43,15 +45,22 @@ public class MainActivity extends Activity {
         }
     }
 
-    @Remote
-    public static String helloWorld(String name) {
-        if(Engine.isOnCloud()) {
-            try {
-                Thread.sleep(1000000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+    private static class Listener implements RemoteExecutionListener {
+
+        @Override
+        public boolean onRemoteExecutionStart(Method method, Object o, Object[] objects) {
+            Log.e("test", "start invoking remotely ...");
+            return true;
         }
+
+        @Override
+        public void onRemoteExecutionComplete(Method method, Object o, Object[] objects, Object o1, boolean b, Throwable throwable) {
+            Log.e("test", "completes, status is " + (b? "success": "failed"));
+        }
+    }
+
+    @Remote(listener = Listener.class)
+    public static String helloWorld(String name) {
         return "Hello World, " + name;
     }
 

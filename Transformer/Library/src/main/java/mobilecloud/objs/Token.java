@@ -11,6 +11,7 @@ import gnu.trove.map.TIntIntMap;
 import gnu.trove.map.TIntObjectMap;
 import gnu.trove.map.hash.TIntIntHashMap;
 import gnu.trove.map.hash.TIntObjectHashMap;
+import mobilecloud.lib.Ignore;
 import mobilecloud.utils.ClassUtils;
 
 /**
@@ -57,14 +58,14 @@ public class Token implements Serializable {
         ObjectVisitor visitor = new ObjectVisitor(new OnObjectVisitedListener() {
             @Override
             public boolean onObjectVisited(Object obj, Object from, Field field) {
-                if(obj == null || ClassUtils.isBasicType(obj.getClass())) {
+                if (obj == null || ClassUtils.isBasicType(obj.getClass())) {
                     // ignore basic types
                     return false;
                 }
                 if(field != null) {
                     int modifier = field.getModifiers();
-                    if (Modifier.isStatic(modifier)) {
-                        // ignore static fields
+                    if (Modifier.isStatic(modifier) || field.isAnnotationPresent(Ignore.class)) {
+                        // ignore static fields and ignored fields
                         return false;
                     }
                 }
@@ -181,9 +182,9 @@ public class Token implements Serializable {
                     @Override
                     public boolean onObjectVisited(Object obj, Object from, Field field) {
                         int modifier = field.getModifiers();
-                        if (Modifier.isStatic(modifier) || Modifier.isFinal(modifier)) {
-                            // ignore static and final fields
-                            // static and fields cannot be migrated
+                        if (Modifier.isStatic(modifier) || Modifier.isFinal(modifier) || field.isAnnotationPresent(Ignore.class)) {
+                            // ignore static, final, and ignored fields
+                            // static and ignored fields cannot be migrated
                             // final fields cannot be changed, thus no need to
                             // add them to snapshot, which speeds up diff
                             // operation

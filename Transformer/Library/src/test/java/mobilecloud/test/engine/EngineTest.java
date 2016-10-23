@@ -32,7 +32,7 @@ import mobilecloud.engine.host.Host;
 import mobilecloud.engine.host.monitor.HostMonitor;
 import mobilecloud.engine.host.monitor.HostStatusChangeListener;
 import mobilecloud.engine.schedular.Schedular;
-import mobilecloud.lib.DefaultRemoteExecutionListener;
+import mobilecloud.lib.listener.DefaultRemoteExecutionListener;
 import mobilecloud.server.ExecutableLoader;
 import mobilecloud.server.NoApplicationExecutableException;
 import mobilecloud.server.Server;
@@ -138,6 +138,14 @@ public class EngineTest {
         public static int sumStatic(int a, int b) {
             return a + b;
         }
+        
+        public static int[] sum(int[] a, int[] b) {
+            int[] res = new int[Math.min(a.length, b.length)];
+            for(int i=0; i<res.length; i++) {
+                res[i] = a[i] + b[i];
+            }
+            return res;
+        }
     }
     
     private final String AppName = "test";
@@ -151,6 +159,7 @@ public class EngineTest {
     private Method multiply;
     private Method sum;
     private Method sumStatic;
+    private Method sumArray;
     private Method contains;
     private Method concat;
     
@@ -234,6 +243,7 @@ public class EngineTest {
         concat = List.class.getMethod("concat", Collection.class);
         sum = TestSum.class.getMethod("sum", int.class, int.class);
         sumStatic = TestSum.class.getMethod("sumStatic", int.class, int.class);
+        sumArray = TestSum.class.getMethod("sum", int[].class, int[].class);
         
         l0 = new ListNode(0);
         l1 = new ListNode(1);
@@ -368,6 +378,16 @@ public class EngineTest {
         assertTrue(engine.shouldMigrate(sumStatic, null, 1, 2));
         int res = (Integer) engine.invokeRemotely(new DefaultRemoteExecutionListener(), sumStatic, null, 1, 2);
         assertEquals(3, res);
+    }
+    
+    @Test
+    public void testArraySum() {
+        int[] a = new int[]{1, 2};
+        int[] b = new int[]{3, 4};
+        assertTrue(engine.shouldMigrate(sumArray, null, a, b));
+        int[] r = (int[]) engine.invokeRemotely(new DefaultRemoteExecutionListener(), sumArray, null, a, b);
+        assertEquals(4, r[0]);
+        assertEquals(6, r[1]);
     }
     
     @Test(expected = NullPointerException.class)

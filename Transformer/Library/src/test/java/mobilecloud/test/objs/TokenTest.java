@@ -9,6 +9,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import gnu.trove.map.TIntObjectMap;
+import mobilecloud.lib.Ignore;
 import mobilecloud.objs.FieldReader;
 import mobilecloud.objs.ObjDiff;
 import mobilecloud.objs.ObjMap;
@@ -21,6 +22,8 @@ public class TokenTest {
     private static class TestObj {
         public Object o;
         public int i;
+        @Ignore
+        public Object c;
     }
     
     private TestObj[] objs;
@@ -31,9 +34,12 @@ public class TokenTest {
         objs = new TestObj[]{new TestObj(), new TestObj(), new TestObj()};
         objs[0].o = objs[2];
         objs[0].i = 10;
+        objs[0].c = new Object();
         objs[1].o = objs[2];
+        objs[1].c = new Object();
         objs[2].o = "hello World";
         objs[2].i = Integer.MIN_VALUE;
+        objs[2].c = new Object();
         token = new Token.Builder().addObjects(Arrays.asList(objs)).build();
     }
     

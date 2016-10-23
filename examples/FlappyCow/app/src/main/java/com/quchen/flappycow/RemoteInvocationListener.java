@@ -7,7 +7,7 @@ import com.quchen.flappycow.sprites.Sprite;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 
-import mobilecloud.lib.RemoteExecutionListener;
+import mobilecloud.lib.listener.RemoteExecutionListener;
 
 public class RemoteInvocationListener implements RemoteExecutionListener{
 

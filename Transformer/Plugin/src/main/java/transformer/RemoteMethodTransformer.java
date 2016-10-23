@@ -16,8 +16,8 @@ import javassist.build.JavassistBuildException;
 import mobilecloud.engine.Engine;
 import mobilecloud.engine.RemoteExecutionAbortedException;
 import mobilecloud.lib.Remote;
-import mobilecloud.lib.RemoteExecutionListener;
-import mobilecloud.utils.ClassUtils;
+import mobilecloud.lib.listener.RemoteExecutionListener;
+import mobilecloud.lib.listener.RemoteExecutionListenerManager;
 
 public class RemoteMethodTransformer implements IClassTransformer {
     
@@ -85,8 +85,8 @@ public class RemoteMethodTransformer implements IClassTransformer {
         //     if(mobilecode.engine.Engine.getInstance().shouldMigrate(__method__, this, __args__) {
         code.append("    if(" + generateShouldMigrateCall(reflectionMethodVarName, argsVarName, method) + ") {\n");
 
-        //         mobilecloud.lib.RemoteExecutionListener __remoteExeListener__ = 
-        //                mobilecloud.ClassUtils.newInstance(((mobilecloud.lib.Remote)__method__.getAnnotation(mobilecloud.lib.Remote.class)).listener());
+        //         mobilecloud.lib.listener.RemoteExecutionListener __remoteExeListener__ = 
+        //               mobilecloud.lib.listener.RemoteExecutionListenerManager.getListener(((mobilecloud.lib.Remote)__method__.getAnnotation(mobilecloud.lib.Remote.class)).listener());
         String remoteExeListenerValName = "__remoteExeListener__";
         code.append("        " + RemoteExecutionListener.class.getName() + " " + remoteExeListenerValName + " = "
                 + generateNewRemoteExecutionListenerCall(reflectionMethodVarName) + ";\n");
@@ -172,7 +172,7 @@ public class RemoteMethodTransformer implements IClassTransformer {
     }
 
     private String generateNewRemoteExecutionListenerCall(String reflectionMethodVarName) {
-        return ClassUtils.class.getName() + ".newInstance(((" + Remote.class.getName() + ")"
+        return RemoteExecutionListenerManager.class.getName() + ".getListener(((" + Remote.class.getName() + ")"
                 + reflectionMethodVarName + ".getAnnotation(" + Remote.class.getName() + ".class)).listener())";
     }
 
