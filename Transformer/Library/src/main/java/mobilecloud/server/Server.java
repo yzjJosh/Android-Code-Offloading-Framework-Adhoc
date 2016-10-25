@@ -99,10 +99,10 @@ public class Server {
      * Read request from an input stream and write resposne to the output stream
      * @param is the input stream to read request
      * @param os the output stream to write resposne
-     * @return the response written to output stream
+     * @param listener the listener to monitor serving process. Could be null.
      * @throws Exception if error happens
      */
-    public Response serve(InputStream is, OutputStream os) throws Exception {
+    public void serve(InputStream is, OutputStream os, ServerListener listener) throws Exception {
         ObjectInputStreamWrapper in = new AdvancedObjectInputStreamWrapper(new BufferedInputStream(is));
         ObjectOutputStreamWrapper out = new ObjectOutputStreamWrapper(new BufferedOutputStream(os));
 
@@ -115,12 +115,20 @@ public class Server {
             throw new IllegalRequestException(type);
         }
 
+        if(listener != null) {
+            listener.onRequestReceivingStarts(type);
+        }
         Request req = receiver.receive(in, out);
-
+        if(listener != null) {
+            listener.onRequestReceived(req);
+        }
+        
         Response resp = serve(req);
         out.get().writeObject(resp);
         out.get().flush();
-        return resp;
+        if(listener != null) {
+            listener.onResponseSent(resp);
+        }
     }
     
     /**

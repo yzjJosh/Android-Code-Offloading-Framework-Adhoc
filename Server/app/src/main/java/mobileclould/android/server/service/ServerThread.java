@@ -2,23 +2,23 @@ package mobileclould.android.server.service;
 
 import android.util.Log;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import mobilecloud.api.Response;
 import mobilecloud.server.Server;
+import mobilecloud.server.ServerListener;
+import timber.log.Timber;
 
 public class ServerThread extends Thread {
 
-    private final String TAG = getClass().getSimpleName();
-
     private final int port;
     private final ExecutorService executor;
+    private ServerListener listener;
     private boolean stopSign;
 
     public ServerThread(int port) {
@@ -31,7 +31,7 @@ public class ServerThread extends Thread {
     public void run() {
         try {
             ServerSocket serverSocket = new ServerSocket(port);
-            Log.i(TAG, "Server thread starts, waiting for requests on port " + port);
+            Timber.i("Server thread starts, waiting for requests on port %d...", port);
             while(!stopSign) {
                 Socket socket = serverSocket.accept();
                 Work worker = new Work(socket);
@@ -43,16 +43,18 @@ public class ServerThread extends Thread {
         executor.shutdown();
     }
 
-    public void kill() throws InterruptedException {
-        Log.i(TAG, "Killing server thread ...");
-        stopSign = true;
-        interrupt();
-        join();
+    public void registerServerListener(ServerListener listener) {
+        this.listener = listener;
     }
 
-    private class Work implements Callable<Response> {
+    public void kill() {
+        Timber.i("Killing server thread ...");
+        stopSign = true;
+        interrupt();
+    }
 
-        private final String TAG = getClass().getSimpleName();
+    private class Work implements Runnable {
+
         private final Socket socket;
 
         public Work(Socket socket) {
@@ -60,27 +62,20 @@ public class ServerThread extends Thread {
         }
 
         @Override
-        public Response call() throws Exception {
+        public void run() {
             try {
-                Log.d(TAG, "Got request");
-
                 InputStream is = socket.getInputStream();
                 OutputStream os = socket.getOutputStream();
-                Response resp = Server.getInstance().serve(is, os);
+                Server.getInstance().serve(is, os, listener);
 
-                if(resp.isSuccess()) {
-                    Log.d(TAG, "Complete serving request, response is " + resp.getClass().getSimpleName() +
-                            ", status is success.");
-                } else {
-                    Log.d(TAG, "Compelte serving request, response is " + resp.getClass().getSimpleName() +
-                            ", status is failed, reason is " + resp.getThrowable());
-                }
-                return resp;
             } catch (Throwable e) {
-                e.printStackTrace();
-                throw e;
+                Timber.e(e, "Error occurs when serving.");
             } finally {
-                socket.close();
+                try {
+                    socket.close();
+                } catch (IOException e) {
+                    Timber.e(e, "Error occurs when closing socket.");
+                }
             }
         }
     }
