@@ -11,30 +11,32 @@ import android.util.Log;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
-import com.jraska.console.timber.ConsoleTree;
-
+import mobilecloud.api.MonitorHostRequest;
+import mobilecloud.api.MonitorHostResponse;
 import mobilecloud.api.Request;
 import mobilecloud.api.Response;
 import mobilecloud.server.ServerListener;
+import mobileclould.android.server.logger.ConsoleTree;
 import mobileclould.android.server.logger.LogCatTree;
-import mobileclould.android.server.logger.NonWordBreakConsoleTree;
 import mobileclould.android.server.service.ServerService;
 import timber.log.Timber;
 
 public class MainActivity extends Activity implements ServiceConnection, ServerListener {
 
     private static final int CONSOLE_BACKGROUND_COLOR = Color.TRANSPARENT;
-    private static final int CONSOLE_TEXT_SIZE = 12;
+    private static final int CONSOLE_TEXT_SIZE = 13;
 
     private ServerService service;
 
     // Initialize the Timber logger
     static {
-        ConsoleTree consoleTree = new ConsoleTree.Builder().debugColor(Color.GRAY).
+        ConsoleTree consoleTree = new ConsoleTree.Builder().assertColor(Color.CYAN)
+                .verboseColor(Color.DKGRAY).debugColor(Color.GRAY).
                 infoColor(Color.BLACK).warnColor(Color.YELLOW).
-                errorColor(Color.RED).build();
-        Timber.plant(new NonWordBreakConsoleTree(consoleTree));
-        Timber.plant(new LogCatTree(Log.VERBOSE));
+                errorColor(Color.RED).minPriority(Log.INFO)
+                .build();
+        Timber.plant(consoleTree);
+        Timber.plant(new LogCatTree());
     }
 
     @Override
@@ -84,20 +86,22 @@ public class MainActivity extends Activity implements ServiceConnection, ServerL
 
     @Override
     public void onRequestReceivingStarts(String s) {
-  //      Timber.i("Start receiving request %s.", s);
+        Timber.d("Start receiving request %s.", s);
     }
 
     @Override
     public void onRequestReceived(Request request) {
-        Timber.i("Receive request %s.", request.getClass().getSimpleName());
+        int priority = request.getClass() == MonitorHostRequest.class? Log.DEBUG: Log.INFO;
+        Timber.log(priority, "Receive request %s.", request.toString());
     }
 
     @Override
     public void onResponseSent(Response response) {
         if(response.isSuccess()) {
-            Timber.i("Complete serving, response type is %s, status is success.", response.getClass().getSimpleName());
+            int priority = response.getClass() == MonitorHostResponse.class? Log.DEBUG: Log.INFO;
+            Timber.log(priority, "Complete serving, status is success, response is %s.", response.toString());
         } else {
-            Timber.e(response.getThrowable(), "Complete serving, response type is %s, status is failed.");
+            Timber.e(response.getThrowable(), "Complete serving, status is failed, response is %s.", response.toString());
         }
     }
 }

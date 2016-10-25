@@ -28,7 +28,8 @@ android {
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
 
-    compile 'com.jraska:console-timber-tree:0.4.3'
+    compile 'com.jraska:console:0.4.3'
+    compile 'com.jakewharton.timber:timber:4.3.1'
 
     // Include required library
     compile group: 'Transformer', name: 'Library', version: '1.0'
