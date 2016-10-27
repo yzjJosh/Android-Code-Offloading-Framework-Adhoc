@@ -14,4 +14,13 @@ public class IllegalRequestResponse extends Response{
         this.setSuccess(false);
         this.setThrowable(e);
     }
+    
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("IllegalRequestResponse{\n");
+        sb.append("    throwable: " + getThrowable() + "\n");
+        sb.append("}\n");
+        return sb.toString();
+    }
 }

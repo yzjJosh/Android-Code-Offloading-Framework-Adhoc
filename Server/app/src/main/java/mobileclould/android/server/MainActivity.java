@@ -30,13 +30,14 @@ public class MainActivity extends Activity implements ServiceConnection, ServerL
 
     // Initialize the Timber logger
     static {
-        ConsoleTree consoleTree = new ConsoleTree.Builder().assertColor(Color.CYAN)
+        ConsoleTree consoleTree = new ConsoleTree.Builder()
                 .verboseColor(Color.DKGRAY).debugColor(Color.GRAY).
                 infoColor(Color.BLACK).warnColor(Color.YELLOW).
-                errorColor(Color.RED).minPriority(Log.INFO)
+                errorColor(Color.RED).assertColor(Color.CYAN)
+                .minPriority(Log.INFO)
                 .build();
         Timber.plant(consoleTree);
-        Timber.plant(new LogCatTree());
+        Timber.plant(new LogCatTree(Log.INFO));
     }
 
     @Override
@@ -96,12 +97,12 @@ public class MainActivity extends Activity implements ServiceConnection, ServerL
     }
 
     @Override
-    public void onResponseSent(Response response) {
+    public void onResponseSent(Request req, Response response) {
         if(response.isSuccess()) {
             int priority = response.getClass() == MonitorHostResponse.class? Log.DEBUG: Log.INFO;
-            Timber.log(priority, "Complete serving, status is success, response is %s.", response.toString());
+            Timber.log(priority, "Complete serving %s, status is success, response is %s.", req.getClass().getSimpleName(), response.toString());
         } else {
-            Timber.e(response.getThrowable(), "Complete serving, status is failed, response is %s.", response.toString());
+            Timber.e(response.getThrowable(), "Complete serving %s, status is failed, response is %s.", req.getClass().getSimpleName(), response.toString());
         }
     }
 }

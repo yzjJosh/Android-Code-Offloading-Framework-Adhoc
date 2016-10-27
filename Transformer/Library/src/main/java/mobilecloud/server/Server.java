@@ -127,7 +127,7 @@ public class Server {
         out.get().writeObject(resp);
         out.get().flush();
         if(listener != null) {
-            listener.onResponseSent(resp);
+            listener.onResponseSent(req, resp);
         }
     }
     

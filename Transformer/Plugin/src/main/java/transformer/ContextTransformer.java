@@ -1,5 +1,7 @@
 package transformer;
 
+import org.gradle.api.Project;
+
 import android.content.Context;
 import javassist.CtClass;
 import javassist.CtConstructor;
@@ -9,6 +11,12 @@ import javassist.build.JavassistBuildException;
 import mobilecloud.engine.Engine;
 
 public class ContextTransformer implements IClassTransformer  {
+    
+    private final Project project;
+    
+    public ContextTransformer(Project project) {
+        this.project = project;
+    }
 
     @Override
     public void applyTransformations(CtClass ctClass) throws JavassistBuildException {
@@ -25,20 +33,28 @@ public class ContextTransformer implements IClassTransformer  {
 
     @Override
     public boolean shouldTransform(CtClass ctClass) throws JavassistBuildException {
-        return isContext(ctClass);
+        try{
+            return isContext(ctClass);
+        } catch (NotFoundException e) {
+            throw new JavassistBuildException(e);
+        }
     }
     
-    private boolean isContext(CtClass c) {
+    private boolean isContext(CtClass c) throws NotFoundException {
         if(c == null) {
             return false;
         } if(c.getName().equals(Context.class.getName())) {
             return true;
         } else {
+            CtClass superClass = null;
             try {
-                return isContext(c.getSuperclass());
-            } catch (NotFoundException e) {
-                return false;
+                superClass = c.getSuperclass();
+            } catch(NotFoundException e) {
+                //If cannot find super class, we use backup classpath and try another time
+                c.getClassPool().appendPathList(ClassPathUtils.getClasspaths(project));
+                superClass = c.getSuperclass();
             }
+            return isContext(superClass);
         }
     }
     

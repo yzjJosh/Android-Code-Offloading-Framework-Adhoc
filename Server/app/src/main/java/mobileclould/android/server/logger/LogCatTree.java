@@ -36,22 +36,22 @@ public class LogCatTree extends TaggedTree{
         }
         switch (priority) {
             case ASSERT:
-                Log.wtf(tag, message, t);
+                Log.wtf(tag, message);
                 break;
             case ERROR:
-                Log.e(tag, message, t);
+                Log.e(tag, message);
                 break;
             case WARN:
-                Log.w(tag, message, t);
+                Log.w(tag, message);
                 break;
             case INFO:
-                Log.i(tag, message, t);
+                Log.i(tag, message);
                 break;
             case DEBUG:
-                Log.d(tag, message, t);
+                Log.d(tag, message);
                 break;
             case VERBOSE:
-                Log.v(tag, message, t);
+                Log.v(tag, message);
                 break;
 
             default:

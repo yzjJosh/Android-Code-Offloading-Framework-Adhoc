@@ -38,7 +38,7 @@ public class ConsoleTree extends TaggedTree {
     private static final Pattern ANONYMOUS_CLASS = Pattern.compile("(\\$\\d+)+$");
 
 
-    private final int minPriority;
+    private int minPriority;
 
     private final int[] priorityColorMapping;
     private final boolean tagTextBold;
@@ -51,6 +51,14 @@ public class ConsoleTree extends TaggedTree {
 
     public ConsoleTree(int minPriority) {
         this(minPriority, DEFAULT_COLORS, DEFAULT_TAG_TEXT_BOLD, DEFAULT_TAG_FONT_FAMILY, DEFAULT_MESSAGE_FONT_FAMILY);
+    }
+
+    /**
+     * Set the threshold of events that can be logged
+     * @param minPriority the minimum priority to be logged
+     */
+    public void setMinPriority(int minPriority) {
+        this.minPriority = minPriority;
     }
 
     private ConsoleTree(int minPriority, int[] colors, boolean tagTextBold, String tagFontFamily, String messageFontFamily) {

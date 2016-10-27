@@ -1,5 +1,7 @@
 package mobilecloud.api;
 
+import java.util.Arrays;
+
 import mobilecloud.objs.Token;
 
 public class RemoteInvocationRequest extends Request {
@@ -74,6 +76,21 @@ public class RemoteInvocationRequest extends Request {
     public RemoteInvocationRequest setToken(Token token) {
         this.token = token;
         return this;
+    }
+    
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("RemoteInvocationRequest{\n");
+        sb.append("    applicationId: " + getApplicationId() + "\n");
+        sb.append("    clazzName: " + getClazzName() + "\n");
+        sb.append("    methodName: " + getMethodName() + "\n");
+        sb.append("    argTypesName: " + (getArgTypesName() == null? null: Arrays.toString(getArgTypesName())) + "\n");
+        sb.append("    invoker: " + getInvoker() + "\n");
+        sb.append("    args: " + (getArgs() == null? null: Arrays.toString(getArgs())) + "\n");
+        sb.append("    token: " + getToken() + "\n");
+        sb.append("}\n");
+        return sb.toString();
     }
     
     

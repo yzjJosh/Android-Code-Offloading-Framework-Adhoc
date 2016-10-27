@@ -2,6 +2,8 @@ package transformer;
 
 import java.io.Serializable;
 
+import org.gradle.api.Project;
+
 import javassist.ClassPool;
 import javassist.CtClass;
 import javassist.NotFoundException;
@@ -9,12 +11,14 @@ import javassist.build.IClassTransformer;
 import javassist.build.JavassistBuildException;
 
 public class SerializableTransformer implements IClassTransformer {
-    
+
+    private final Project project;
     private CtClass serializable;
     
-    public SerializableTransformer() {
+    public SerializableTransformer(Project project) {
+        this.project = project;
         try {
-            serializable = ClassPool.getDefault().get(Serializable.class.getName());
+            this.serializable = ClassPool.getDefault().get(Serializable.class.getName());
         } catch (NotFoundException e) {
             e.printStackTrace();
         }
@@ -29,11 +33,19 @@ public class SerializableTransformer implements IClassTransformer {
     @Override
     public boolean shouldTransform(CtClass ctClass) throws JavassistBuildException {
         try {
-            return !ctClass.isInterface() && !ctClass.subtypeOf(serializable);
+            return !ctClass.isInterface() && !isSerializable(ctClass);
         } catch (NotFoundException e) {
-            return true;
+            throw new JavassistBuildException(e);
         }
-
+    }
+    
+    private boolean isSerializable(CtClass c) throws NotFoundException {
+        try {
+            return c.subtypeOf(serializable);
+        } catch (NotFoundException e) {
+            c.getClassPool().appendPathList(ClassPathUtils.getClasspaths(project));
+            return c.subtypeOf(serializable);
+        }
     }
 
 }

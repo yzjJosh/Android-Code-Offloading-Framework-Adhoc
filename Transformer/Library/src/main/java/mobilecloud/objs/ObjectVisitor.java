@@ -74,13 +74,16 @@ public class ObjectVisitor {
                 visit(Array.get(obj, i), visited, obj, null, i);
             }
         } else {
-            for (Field f : clazz.getDeclaredFields()) {
-                f.setAccessible(true);
-                try {
-                    visit(f.get(obj), visited, obj, f, -1);
-                } catch (IllegalArgumentException | IllegalAccessException e) {
-                    e.printStackTrace();
+            while(clazz != null && clazz != Object.class) {
+                for (Field f : clazz.getDeclaredFields()) {
+                    f.setAccessible(true);
+                    try {
+                        visit(f.get(obj), visited, obj, f, -1);
+                    } catch (IllegalArgumentException | IllegalAccessException e) {
+                        e.printStackTrace();
+                    }
                 }
+                clazz = clazz.getSuperclass();
             }
         }
     }
@@ -100,13 +103,16 @@ public class ObjectVisitor {
                     listener.onObjectVisited(Array.get(obj, i), obj, i);
                 }
             } else {
-                for (Field f : clazz.getDeclaredFields()) {
-                    f.setAccessible(true);
-                    try {
-                        listener.onObjectVisited(f.get(obj), obj, f);
-                    } catch (IllegalArgumentException | IllegalAccessException e) {
-                        e.printStackTrace();
+                while(clazz != null && clazz != Object.class) {
+                    for (Field f : clazz.getDeclaredFields()) {
+                        f.setAccessible(true);
+                        try {
+                            listener.onObjectVisited(f.get(obj), obj, f);
+                        } catch (IllegalArgumentException | IllegalAccessException e) {
+                            e.printStackTrace();
+                        }
                     }
+                    clazz = clazz.getSuperclass();
                 }
             }
         }

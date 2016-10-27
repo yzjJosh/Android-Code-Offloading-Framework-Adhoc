@@ -65,7 +65,7 @@ public class RemoteMethodTransformer implements IClassTransformer {
         
         //Firstly rename this method
         String methodName = method.getName();
-        String newName = "__" + methodName + "Body__";
+        String newName = "__" + methodName + "__";
         System.out.println("Renaming method " + method.getLongName() + " to " + newName + "...");
         method.setName(newName);
         

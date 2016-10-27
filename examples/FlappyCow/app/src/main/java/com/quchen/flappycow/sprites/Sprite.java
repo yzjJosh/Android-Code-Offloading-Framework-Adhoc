@@ -15,13 +15,15 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Rect;
 
+import mobilecloud.lib.Ignore;
 import mobilecloud.lib.Remote;
 
 
 public abstract class Sprite {
 
     /** The bitmaps that holds the frames that should be drawn */
-    protected transient Bitmap bitmap;
+    @Ignore
+    protected Bitmap bitmap;
     
     /** Height and width of one frame of the bitmap */
     protected int height, width;
@@ -33,10 +35,12 @@ public abstract class Sprite {
     protected float speedX, speedY;
     
     /** The source frame of the bitmap that should be drawn */
-    protected transient Rect src;
+    @Ignore
+    protected Rect src;
     
     /** The destination area that the frame should be drawn to */
-    protected transient Rect dst;
+    @Ignore
+    protected Rect dst;
     
     /** Coordinates of the frame in the spritesheet */
     protected byte col, row;
@@ -54,10 +58,12 @@ public abstract class Sprite {
     protected short frameTimeCounter;
     
     /** The GameView that holds this Sprite */
-    protected transient GameView view;
+    @Ignore
+    protected GameView view;
     
     /** The context */
-    protected transient Game game;
+    @Ignore
+    protected Game game;
     
     public Sprite(GameView view, Game game){
         this.view = view;

@@ -23,7 +23,8 @@ public interface ServerListener {
     
     /**
      * Called when the response has been sent to client
+     * @param req the request handled
      * @param resp the response sent to client
      */
-    public void onResponseSent(Response resp);
+    public void onResponseSent(Request req, Response resp);
 }

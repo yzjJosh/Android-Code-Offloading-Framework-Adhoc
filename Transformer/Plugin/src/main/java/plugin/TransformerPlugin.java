@@ -24,8 +24,8 @@ public class TransformerPlugin extends AbstractMorpheusPlugin {
 
     @Override
     public IClassTransformer[] getTransformers(Project project) {
-        return new IClassTransformer[] { new RemoteMethodTransformer(), new ContextTransformer(),
-                new SerializableTransformer(), new IgnoredFieldsTransformer() };
+        return new IClassTransformer[] { new RemoteMethodTransformer(),
+                new ContextTransformer(project), new SerializableTransformer(project),
+                new IgnoredFieldsTransformer() };
     }
-
 }

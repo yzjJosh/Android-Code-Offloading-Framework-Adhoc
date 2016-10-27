@@ -145,6 +145,11 @@ public class Token implements Serializable {
         return objects.size();
     }
     
+    @Override
+    public String toString() {
+        return objects.toString();
+    }
+    
     public static class SnapShot implements Serializable {
         private static final long serialVersionUID = 1L;
 

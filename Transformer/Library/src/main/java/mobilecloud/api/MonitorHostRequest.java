@@ -5,4 +5,9 @@ package mobilecloud.api;
  */
 public class MonitorHostRequest extends Request {
     private static final long serialVersionUID = 1L;
+    
+    @Override
+    public String toString() {
+        return "MonitorHostRequest";
+    }
 }

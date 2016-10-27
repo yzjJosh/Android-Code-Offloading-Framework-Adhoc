@@ -37,5 +37,21 @@ public class RemoteInvocationResponse extends Response {
         this.returnVal = returnVal;
         return this;
     }
+    
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("RemoteInvocationRequest{\n");
+        sb.append("    success: " + isSuccess() + "\n");
+        if(isSuccess()) {
+            sb.append("    returnVal: " + getReturnVal() + "\n");
+            sb.append("    diffs: " + getDiffs() + "\n");
+            sb.append("    token: " + getToken() + "\n");
+        } else {
+            sb.append("    throwable: " + getThrowable() + "\n");
+        }
+        sb.append("}\n");
+        return sb.toString();
+    }
 
 }
