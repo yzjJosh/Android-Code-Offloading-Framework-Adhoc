@@ -6,11 +6,46 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
+    android:padding="5dp"
     tools:context="mobileclould.android.server.MainActivity">
 
-    <com.jraska.console.Console
-        android:id="@+id/console"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
+    <Switch
+        android:id="@+id/server_switch"
+        android:text="Server Status"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
 
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:text="Server Log"
+                android:textSize="16sp"
+                android:layout_height="wrap_content" />
+
+            <Spinner
+                android:id="@+id/log_level_spanner"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="16sp"
+                android:layout_marginStart="5dp" />
+
+        </LinearLayout>
+
+        <com.jraska.console.Console
+            android:id="@+id/console"
+            android:layout_marginTop="5dp"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"/>
+        
+    </LinearLayout>
+    
 </LinearLayout>

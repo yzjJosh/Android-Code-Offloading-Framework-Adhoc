@@ -8,7 +8,13 @@ import android.graphics.Color;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.CompoundButton;
 import android.widget.ScrollView;
+import android.widget.Spinner;
+import android.widget.Switch;
 import android.widget.TextView;
 
 import mobilecloud.api.MonitorHostRequest;
@@ -21,18 +27,23 @@ import mobileclould.android.server.logger.LogCatTree;
 import mobileclould.android.server.service.ServerService;
 import timber.log.Timber;
 
-public class MainActivity extends Activity implements ServiceConnection, ServerListener {
+public class MainActivity extends Activity implements ServiceConnection, ServerListener, CompoundButton.OnCheckedChangeListener,
+        AdapterView.OnItemSelectedListener{
 
     private static final int CONSOLE_BACKGROUND_COLOR = Color.TRANSPARENT;
     private static final int CONSOLE_TEXT_SIZE = 13;
+    private static final String[] LOG_LEVEL_DESCRIPTION = new String[]{"Verbose", "Debug", "Info", "Warn", "Error", "Assert"};
+
+    private static ConsoleTree consoleTree;
 
     private ServerService service;
+    private Switch serverSwitch;
 
     // Initialize the Timber logger
     static {
-        ConsoleTree consoleTree = new ConsoleTree.Builder()
+        consoleTree = new ConsoleTree.Builder()
                 .verboseColor(Color.DKGRAY).debugColor(Color.GRAY).
-                infoColor(Color.BLACK).warnColor(Color.YELLOW).
+                infoColor(Color.BLACK).warnColor(Color.rgb(234, 187, 46)).
                 errorColor(Color.RED).assertColor(Color.CYAN)
                 .minPriority(Log.INFO)
                 .build();
@@ -47,13 +58,27 @@ public class MainActivity extends Activity implements ServiceConnection, ServerL
 
         initConsole();
 
-        runService(Config.PORT_NUMBER);
+        //Bind service firstly
+        bindService(new Intent(this, ServerService.class), this, BIND_AUTO_CREATE);
+
+        // Init switch
+        serverSwitch = (Switch) findViewById(R.id.server_switch);
+        serverSwitch.setOnCheckedChangeListener(this);
+
+        // Init log spinner
+        Spinner logLevelSpinner = (Spinner) findViewById(R.id.log_level_spanner);
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, LOG_LEVEL_DESCRIPTION);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        logLevelSpinner.setAdapter(adapter);
+        logLevelSpinner.setOnItemSelectedListener(this);
+        logLevelSpinner.setSelection(consoleTree.getMinPriority()-Log.VERBOSE);
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
 
+        // Unbind service when stops
         unbindService(this);
     }
 
@@ -65,24 +90,15 @@ public class MainActivity extends Activity implements ServiceConnection, ServerL
         textView.setTextSize(CONSOLE_TEXT_SIZE);
     }
 
-    //Start the service on given port number
-    private void runService(int port) {
-        Intent intent = new Intent(this, ServerService.class);
-        intent.putExtra(ServerService.PORT_NUMBER_KEY, port);
-        startService(intent);
-        bindService(intent, this, BIND_IMPORTANT);
-    }
-
     @Override
     public void onServiceConnected(ComponentName name, IBinder service) {
         this.service = ((ServerService.ServiceBinder) service).getService();
-        this.service.registerServerListener(this);
+        this.serverSwitch.setChecked(this.service.isStarted());
     }
 
     @Override
     public void onServiceDisconnected(ComponentName name) {
-        this.service.registerServerListener(null);
-        this.service = null;
+        Timber.wtf("Service connection is lost!");
     }
 
     @Override
@@ -105,4 +121,29 @@ public class MainActivity extends Activity implements ServiceConnection, ServerL
             Timber.e(response.getThrowable(), "Complete serving %s, status is failed, response is %s.", req.getClass().getSimpleName(), response.toString());
         }
     }
+
+    @Override
+    public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+        if(isChecked) {
+            if(!service.isStarted()) {
+                // Make this service long time alive
+                startService(new Intent(this, ServerService.class));
+                // Start the server
+                service.startServer(Config.PORT_NUMBER);
+                service.registerServerListener(this);
+            }
+        } else {
+            if(service.isStarted()) {
+                service.stopServer();
+            }
+        }
+    }
+
+    @Override
+    public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+        consoleTree.setMinPriority(position + Log.VERBOSE);
+    }
+
+    @Override
+    public void onNothingSelected(AdapterView<?> parent) {}
 }

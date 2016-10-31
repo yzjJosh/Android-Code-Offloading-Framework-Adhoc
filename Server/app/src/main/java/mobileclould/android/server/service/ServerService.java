@@ -17,41 +17,47 @@ public class ServerService extends Service {
     private IBinder binder = new ServiceBinder();
 
     @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-
-        if(intent != null && thread == null) {
-            // Init the server firstly
-            Server.init(this);
-
-            // Create a server thread
-            int port = intent.getIntExtra(PORT_NUMBER_KEY, Config.PORT_NUMBER);
-            thread = new ServerThread((port));
-            thread.start();
-        }
-
-        return super.onStartCommand(intent, flags, startId);
-    }
-
-    @Override
     public IBinder onBind(Intent intent) {
         return binder;
     }
 
     /**
+     * Start the server on given port number
+     */
+    public synchronized void startServer(int port) {
+        if(thread == null) {
+            Server.init(this);
+            thread = new ServerThread(port);
+            thread.start();
+        } else {
+            throw new IllegalStateException("Server is already started!");
+        }
+    }
+
+    /**
      * Stop the server
      */
-    public void stopServer() {
+    public synchronized void stopServer() {
         if(thread != null) {
             thread.kill();
+            thread = null;
         }
         stopSelf();
+    }
+
+    /**
+     * Check if the server is started
+     * @return true if started
+     */
+    public synchronized boolean isStarted() {
+        return thread != null;
     }
 
     /**
      * Register a server listener to the server
      * @param listener the listener to monitor the server
      */
-    public void registerServerListener(ServerListener listener) {
+    public synchronized void registerServerListener(ServerListener listener) {
         if(thread != null) {
             thread.registerServerListener(listener);
         }

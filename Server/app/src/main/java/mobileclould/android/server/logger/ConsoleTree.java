@@ -34,10 +34,6 @@ public class ConsoleTree extends TaggedTree {
     private static final String DEFAULT_TAG_FONT_FAMILY = "monospace";
     private static final String DEFAULT_MESSAGE_FONT_FAMILY = "serif";
 
-    private static final int CALL_STACK_INDEX = 6;
-    private static final Pattern ANONYMOUS_CLASS = Pattern.compile("(\\$\\d+)+$");
-
-
     private int minPriority;
 
     private final int[] priorityColorMapping;
@@ -59,6 +55,14 @@ public class ConsoleTree extends TaggedTree {
      */
     public void setMinPriority(int minPriority) {
         this.minPriority = minPriority;
+    }
+
+    /**
+     * Get the min priority of this tree
+     * @return the min priority
+     */
+    public int getMinPriority() {
+        return minPriority;
     }
 
     private ConsoleTree(int minPriority, int[] colors, boolean tagTextBold, String tagFontFamily, String messageFontFamily) {

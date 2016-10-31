@@ -17,30 +17,37 @@ import timber.log.Timber;
 public class ServerThread extends Thread {
 
     private final int port;
-    private final ExecutorService executor;
     private ServerListener listener;
+    private ServerSocket serverSocket;
     private boolean stopSign;
 
     public ServerThread(int port) {
         this.port = port;
-        this.executor = Executors.newCachedThreadPool();
         this.stopSign = false;
     }
 
     @Override
     public void run() {
+        ExecutorService executor = Executors.newCachedThreadPool();
         try {
-            ServerSocket serverSocket = new ServerSocket(port);
-            Timber.i("Server thread starts, waiting for requests on port %d...", port);
-            while(!stopSign) {
-                Socket socket = serverSocket.accept();
-                Work worker = new Work(socket);
-                executor.submit(worker);
+            serverSocket = new ServerSocket(port);
+        } catch (IOException e) {
+            Timber.e(e);
+        }
+        if(serverSocket != null) {
+            try {
+                Timber.i("Server thread starts, waiting for requests on port %d...", port);
+                while (!stopSign) {
+                    Socket socket = serverSocket.accept();
+                    Work worker = new Work(socket);
+                    executor.submit(worker);
+                }
+            } catch (IOException e) {
+                Timber.d(e);
             }
-        } catch (Exception e) {
-            e.printStackTrace();
         }
         executor.shutdown();
+        Timber.w("Server thread is stopped.");
     }
 
     public void registerServerListener(ServerListener listener) {
@@ -48,9 +55,14 @@ public class ServerThread extends Thread {
     }
 
     public void kill() {
-        Timber.i("Killing server thread ...");
         stopSign = true;
-        interrupt();
+        if(serverSocket != null) {
+            try {
+                serverSocket.close();
+            } catch (IOException e) {
+                Timber.e(e);
+            }
+        }
     }
 
     private class Work implements Runnable {
