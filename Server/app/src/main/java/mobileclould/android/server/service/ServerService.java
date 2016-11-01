@@ -42,7 +42,6 @@ public class ServerService extends Service {
             thread.kill();
             thread = null;
         }
-        stopSelf();
     }
 
     /**

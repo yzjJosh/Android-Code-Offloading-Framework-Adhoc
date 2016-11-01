@@ -41,7 +41,7 @@ public class RemoteInvocationResponse extends Response {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("RemoteInvocationRequest{\n");
+        sb.append("RemoteInvocationResponse{\n");
         sb.append("    success: " + isSuccess() + "\n");
         if(isSuccess()) {
             sb.append("    returnVal: " + getReturnVal() + "\n");

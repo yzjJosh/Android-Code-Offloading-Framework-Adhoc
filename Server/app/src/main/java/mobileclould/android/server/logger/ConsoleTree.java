@@ -8,11 +8,8 @@ import android.text.style.StyleSpan;
 import android.text.style.TypefaceSpan;
 
 import com.jraska.console.Console;
-import timber.log.Timber;
 
 import java.util.Arrays;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static android.util.Log.*;
 import static java.util.Locale.US;
@@ -92,13 +89,15 @@ public class ConsoleTree extends TaggedTree {
         if(tag == null) {
             prefix = String.format("%s", toPriorityString(priority));
         } else {
-            prefix = String.format("%s/%s", toPriorityString(priority), tag);
+            prefix = String.format("[%s]%s", toPriorityString(priority), tag);
         }
         int prefixLen = prefix.length();
         consoleMessage = String.format("%s: %s", prefix, consoleMessage);
 
-        // Set the space character to non-breaking space
+        // replace characters with non-breaking version
         consoleMessage = consoleMessage.replaceAll(" ", "\u00A0");
+        consoleMessage = consoleMessage.replaceAll("/", "\u2215");
+        consoleMessage = consoleMessage.replaceAll("-", "\u2011");
 
         SpannableString spannableString = new SpannableString(consoleMessage);
 

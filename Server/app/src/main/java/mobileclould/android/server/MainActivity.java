@@ -135,6 +135,7 @@ public class MainActivity extends Activity implements ServiceConnection, ServerL
         } else {
             if(service.isStarted()) {
                 service.stopServer();
+                stopService(new Intent(this, ServerService.class));
             }
         }
     }

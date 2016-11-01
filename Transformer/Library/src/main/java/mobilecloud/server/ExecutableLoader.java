@@ -5,7 +5,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import android.content.Context;
-import dalvik.system.PathClassLoader;
+import dalvik.system.DexClassLoader;
 import mobilecloud.utils.FileUtils;
 
 /**
@@ -38,6 +38,15 @@ public class ExecutableLoader {
      */
     public String getExecutableDirectory(String applicationId) {
          return getAppDirectory(applicationId) + "/" + Config.EXECUTABLE_FOLDER;
+    }
+    
+    /**
+     * Get the location of the optimized dex files
+     * @param applicationId the app id
+     * @return the location of optimized dex files
+     */
+    public String getOptimizedDexDirectory(String applicationId) {
+        return getAppDirectory(applicationId) + "/" + Config.OPTIMIZED_DEX_FOLDER_NAME;
     }
     
     /**
@@ -80,7 +89,9 @@ public class ExecutableLoader {
                             }
                             path.append(dex.getPath());
                         }
-                        cl = new PathClassLoader(path.toString(), context.getClassLoader());
+                        FileUtils.createDirIfDoesNotExist(getOptimizedDexDirectory(applicationId));
+                        cl = new DexClassLoader(path.toString(), getOptimizedDexDirectory(applicationId), null,
+                                context.getClassLoader());
                         classLoaders.put(applicationId, cl);
                     }
                 }

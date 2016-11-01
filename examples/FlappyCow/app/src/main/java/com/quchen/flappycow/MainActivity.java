@@ -40,6 +40,7 @@ public class MainActivity extends BaseGameActivity {
         setSocket();
 
         StaticHostProvider.addHost(new Host("127.0.0.1", 50382));
+        StaticHostProvider.addHost(new Host("192.168.0.16", 50382));
     }
 
     public GoogleApiClient getApiClient(){
