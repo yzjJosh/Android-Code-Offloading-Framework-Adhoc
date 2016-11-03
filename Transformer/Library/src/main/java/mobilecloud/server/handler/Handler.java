@@ -1,7 +1,7 @@
 package mobilecloud.server.handler;
 
-import mobilecloud.api.Request;
-import mobilecloud.api.Response;
+import mobilecloud.api.request.Request;
+import mobilecloud.api.response.Response;
 
 /**
  * A handler is used by server to handle a specific request

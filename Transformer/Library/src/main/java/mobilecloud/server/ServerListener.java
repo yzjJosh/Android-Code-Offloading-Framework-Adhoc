@@ -1,7 +1,7 @@
 package mobilecloud.server;
 
-import mobilecloud.api.Request;
-import mobilecloud.api.Response;
+import mobilecloud.api.request.Request;
+import mobilecloud.api.response.Response;
 
 /**
  * Server listener is a listener that can be used to monitor the server's activities

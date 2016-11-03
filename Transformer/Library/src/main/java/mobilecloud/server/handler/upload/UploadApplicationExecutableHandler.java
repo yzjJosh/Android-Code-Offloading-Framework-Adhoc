@@ -4,10 +4,10 @@ import java.io.File;
 
 import org.zeroturnaround.zip.ZipUtil;
 
-import mobilecloud.api.Request;
-import mobilecloud.api.Response;
-import mobilecloud.api.UploadApplicationExecutableRequest;
-import mobilecloud.api.UploadApplicationExecutableResponse;
+import mobilecloud.api.request.Request;
+import mobilecloud.api.request.UploadApplicationExecutableRequest;
+import mobilecloud.api.response.Response;
+import mobilecloud.api.response.UploadApplicationExecutableResponse;
 import mobilecloud.server.DuplicateExecutableException;
 import mobilecloud.server.ExecutableLoader;
 import mobilecloud.server.NoApplicationExecutableException;

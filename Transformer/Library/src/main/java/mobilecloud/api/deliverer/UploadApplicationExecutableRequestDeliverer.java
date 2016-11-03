@@ -1,9 +1,9 @@
-package mobilecloud.client.deliverer;
+package mobilecloud.api.deliverer;
 
 import java.io.FileInputStream;
 
-import mobilecloud.api.Request;
-import mobilecloud.api.UploadApplicationExecutableRequest;
+import mobilecloud.api.request.Request;
+import mobilecloud.api.request.UploadApplicationExecutableRequest;
 import mobilecloud.server.DuplicateExecutableException;
 import mobilecloud.utils.ObjectInputStreamWrapper;
 import mobilecloud.utils.ObjectOutputStreamWrapper;

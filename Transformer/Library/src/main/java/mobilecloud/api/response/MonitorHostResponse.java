@@ -1,4 +1,4 @@
-package mobilecloud.api;
+package mobilecloud.api.response;
 
 /**
  * Rep OK response for MonitorHostRequest

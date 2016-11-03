@@ -1,4 +1,4 @@
-package mobilecloud.api;
+package mobilecloud.api.response;
 
 import java.io.Serializable;
 

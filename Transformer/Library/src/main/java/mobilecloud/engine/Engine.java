@@ -6,11 +6,11 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 
 import android.content.Context;
-import mobilecloud.api.RemoteInvocationRequest;
-import mobilecloud.api.RemoteInvocationResponse;
-import mobilecloud.api.Request;
-import mobilecloud.api.Response;
-import mobilecloud.api.UploadApplicationExecutableRequest;
+import mobilecloud.api.request.RemoteInvocationRequest;
+import mobilecloud.api.request.Request;
+import mobilecloud.api.request.UploadApplicationExecutableRequest;
+import mobilecloud.api.response.RemoteInvocationResponse;
+import mobilecloud.api.response.Response;
 import mobilecloud.client.Client;
 import mobilecloud.engine.host.Host;
 import mobilecloud.engine.host.monitor.HostMonitor;
@@ -72,6 +72,8 @@ public class Engine {
      * Indicate current host
      */
     private static class LocalHost extends Host {
+        private static final long serialVersionUID = 1L;
+
         public LocalHost() {
             super("localHost", 0);
         }

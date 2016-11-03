@@ -13,9 +13,9 @@ import org.mockito.AdditionalMatchers;
 import org.mockito.Matchers;
 import org.mockito.Mockito;
 
-import mobilecloud.api.RemoteInvocationRequest;
-import mobilecloud.api.RemoteInvocationResponse;
-import mobilecloud.api.Response;
+import mobilecloud.api.request.RemoteInvocationRequest;
+import mobilecloud.api.response.RemoteInvocationResponse;
+import mobilecloud.api.response.Response;
 import mobilecloud.objs.ObjectMigrator;
 import mobilecloud.objs.Token;
 import mobilecloud.server.ExecutableLoader;

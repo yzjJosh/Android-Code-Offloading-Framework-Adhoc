@@ -16,9 +16,9 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.mockito.Matchers;
 
-import mobilecloud.api.MonitorHostResponse;
-import mobilecloud.api.Request;
-import mobilecloud.api.Response;
+import mobilecloud.api.request.Request;
+import mobilecloud.api.response.MonitorHostResponse;
+import mobilecloud.api.response.Response;
 import mobilecloud.client.Client;
 import mobilecloud.engine.host.Host;
 import mobilecloud.engine.host.monitor.HostMonitor;

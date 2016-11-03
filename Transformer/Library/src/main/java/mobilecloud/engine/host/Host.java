@@ -1,9 +1,13 @@
 package mobilecloud.engine.host;
 
+import java.io.Serializable;
+
 /**
  * A representation of cloud host
  */
-public class Host {
+public class Host implements Serializable {
+    private static final long serialVersionUID = 1L;
+    
     public final String ip;
     public final int port;
     

@@ -1,4 +1,4 @@
-package mobilecloud.api;
+package mobilecloud.api.request;
 
 import java.util.Arrays;
 

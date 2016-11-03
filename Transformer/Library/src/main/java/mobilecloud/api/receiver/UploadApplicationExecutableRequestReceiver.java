@@ -1,11 +1,11 @@
-package mobilecloud.server.receiver;
+package mobilecloud.api.receiver;
 
 import java.io.FileOutputStream;
 import java.util.HashSet;
 import java.util.Set;
 
-import mobilecloud.api.Request;
-import mobilecloud.api.UploadApplicationExecutableRequest;
+import mobilecloud.api.request.Request;
+import mobilecloud.api.request.UploadApplicationExecutableRequest;
 import mobilecloud.server.DuplicateExecutableException;
 import mobilecloud.server.ExecutableLoader;
 import mobilecloud.utils.FileUtils;

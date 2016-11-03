@@ -6,9 +6,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import mobilecloud.api.MonitorHostRequest;
-import mobilecloud.api.Request;
-import mobilecloud.api.Response;
+import mobilecloud.api.request.MonitorHostRequest;
+import mobilecloud.api.request.Request;
+import mobilecloud.api.response.Response;
 import mobilecloud.client.Client;
 import mobilecloud.engine.Config;
 import mobilecloud.engine.host.Host;

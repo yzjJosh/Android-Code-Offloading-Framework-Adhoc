@@ -6,15 +6,17 @@ import java.net.Socket;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import mobilecloud.api.MonitorHostRequest;
-import mobilecloud.api.RemoteInvocationRequest;
-import mobilecloud.api.Request;
-import mobilecloud.api.Response;
-import mobilecloud.api.UploadApplicationExecutableRequest;
-import mobilecloud.client.deliverer.Deliverer;
-import mobilecloud.client.deliverer.MonitorHostRequestDeliverer;
-import mobilecloud.client.deliverer.RemoteInvocationRequestDeliverer;
-import mobilecloud.client.deliverer.UploadApplicationExecutableRequestDeliverer;
+import mobilecloud.api.request.MonitorHostRequest;
+import mobilecloud.api.request.RegisterServerRequest;
+import mobilecloud.api.request.RemoteInvocationRequest;
+import mobilecloud.api.request.Request;
+import mobilecloud.api.request.UploadApplicationExecutableRequest;
+import mobilecloud.api.response.Response;
+import mobilecloud.api.deliverer.Deliverer;
+import mobilecloud.api.deliverer.MonitorHostRequestDeliverer;
+import mobilecloud.api.deliverer.RegisterServerRequestDeliverer;
+import mobilecloud.api.deliverer.RemoteInvocationRequestDeliverer;
+import mobilecloud.api.deliverer.UploadApplicationExecutableRequestDeliverer;
 import mobilecloud.engine.host.Host;
 import mobilecloud.utils.ObjectInputStreamWrapper;
 import mobilecloud.utils.ObjectOutputStreamWrapper;
@@ -42,6 +44,7 @@ public class Client {
         this.registerDeliverer(RemoteInvocationRequest.class.getName(), new RemoteInvocationRequestDeliverer());
         this.registerDeliverer(UploadApplicationExecutableRequest.class.getName(),
                 new UploadApplicationExecutableRequestDeliverer());
+        this.registerDeliverer(RegisterServerRequest.class.getName(), new RegisterServerRequestDeliverer());
     }
     
     /**

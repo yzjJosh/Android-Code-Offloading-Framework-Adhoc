@@ -1,4 +1,4 @@
-package mobilecloud.api;
+package mobilecloud.api.response;
 
 import gnu.trove.map.TIntObjectMap;
 import mobilecloud.objs.ObjDiff;

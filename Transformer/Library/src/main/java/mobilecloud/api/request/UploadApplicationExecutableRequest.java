@@ -1,4 +1,4 @@
-package mobilecloud.api;
+package mobilecloud.api.request;
 
 /**
  * A request to upload an apk file

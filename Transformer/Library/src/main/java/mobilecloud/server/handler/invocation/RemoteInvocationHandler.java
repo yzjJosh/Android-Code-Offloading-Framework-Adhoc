@@ -8,10 +8,10 @@ import java.lang.reflect.Modifier;
 
 import gnu.trove.iterator.TIntIterator;
 import gnu.trove.map.TIntObjectMap;
-import mobilecloud.api.RemoteInvocationRequest;
-import mobilecloud.api.RemoteInvocationResponse;
-import mobilecloud.api.Request;
-import mobilecloud.api.Response;
+import mobilecloud.api.request.RemoteInvocationRequest;
+import mobilecloud.api.request.Request;
+import mobilecloud.api.response.RemoteInvocationResponse;
+import mobilecloud.api.response.Response;
 import mobilecloud.lib.Ignore;
 import mobilecloud.objs.ObjDiff;
 import mobilecloud.objs.ObjectVisitor;

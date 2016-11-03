@@ -19,11 +19,11 @@ import android.content.Context;
 
 import org.mockito.Matchers;
 
-import mobilecloud.api.RemoteInvocationRequest;
-import mobilecloud.api.Request;
-import mobilecloud.api.Response;
-import mobilecloud.api.UploadApplicationExecutableRequest;
-import mobilecloud.api.UploadApplicationExecutableResponse;
+import mobilecloud.api.request.RemoteInvocationRequest;
+import mobilecloud.api.request.Request;
+import mobilecloud.api.request.UploadApplicationExecutableRequest;
+import mobilecloud.api.response.Response;
+import mobilecloud.api.response.UploadApplicationExecutableResponse;
 import mobilecloud.client.Client;
 import mobilecloud.engine.Engine;
 import mobilecloud.engine.ExecutableProvider;

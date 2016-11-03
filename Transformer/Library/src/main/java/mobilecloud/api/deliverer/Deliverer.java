@@ -1,6 +1,6 @@
-package mobilecloud.client.deliverer;
+package mobilecloud.api.deliverer;
 
-import mobilecloud.api.Request;
+import mobilecloud.api.request.Request;
 import mobilecloud.utils.ObjectInputStreamWrapper;
 import mobilecloud.utils.ObjectOutputStreamWrapper;
 

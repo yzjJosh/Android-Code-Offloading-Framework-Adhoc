@@ -1,4 +1,4 @@
-package mobilecloud.api;
+package mobilecloud.api.request;
 
 /**
  * A request sent to check if a host is available or not

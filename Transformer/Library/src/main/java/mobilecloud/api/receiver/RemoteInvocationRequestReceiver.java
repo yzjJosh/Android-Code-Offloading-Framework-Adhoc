@@ -1,7 +1,7 @@
-package mobilecloud.server.receiver;
+package mobilecloud.api.receiver;
 
-import mobilecloud.api.RemoteInvocationRequest;
-import mobilecloud.api.Request;
+import mobilecloud.api.request.RemoteInvocationRequest;
+import mobilecloud.api.request.Request;
 import mobilecloud.server.ExecutableLoader;
 import mobilecloud.server.NoApplicationExecutableException;
 import mobilecloud.utils.AdvancedObjectInputStream;

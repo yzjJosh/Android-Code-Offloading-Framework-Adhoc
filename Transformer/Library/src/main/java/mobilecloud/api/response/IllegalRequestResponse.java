@@ -1,16 +1,16 @@
-package mobilecloud.api;
+package mobilecloud.api.response;
 
-import mobilecloud.server.InternalServerError;
+import mobilecloud.server.IllegalRequestException;
 
 /**
- * A response indicating that there is an error in server
+ * A response indicating that a request is illegal
  *
  */
-public class InternalServerErrorResponse extends Response{
+public class IllegalRequestResponse extends Response{
 
     private static final long serialVersionUID = 1L;
 
-    public InternalServerErrorResponse(InternalServerError e) {
+    public IllegalRequestResponse(IllegalRequestException e) {
         this.setSuccess(false);
         this.setThrowable(e);
     }
@@ -18,7 +18,7 @@ public class InternalServerErrorResponse extends Response{
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("InternalServerErrorResponse{\n");
+        sb.append("IllegalRequestResponse{\n");
         sb.append("    throwable: " + getThrowable() + "\n");
         sb.append("}\n");
         return sb.toString();
