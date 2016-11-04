@@ -10,6 +10,15 @@ repositories {
 
 // In this section you declare the dependencies for your production and test code
 dependencies {
+	compile group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.7'
+    compile group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.7'
+    compile group: 'org.projectlombok', name: 'lombok', version: '1.16.10'
     testCompile 'junit:junit:4.12'
     compile group: 'Transformer', name: 'Library', version: '1.0'
+}
+
+task run(type:JavaExec) {
+	main = "server.CentralServer"
+	classpath = sourceSets.main.runtimeClasspath
+	systemProperties = ['log4j.configurationFile': 'log4j2/configuration.xml']
 }

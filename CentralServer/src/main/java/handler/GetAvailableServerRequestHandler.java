@@ -1,5 +1,8 @@
 package handler;
 
+import java.util.List;
+
+import lombok.extern.log4j.Log4j2;
 import mobilecloud.api.request.GetAvailableServerRequest;
 import mobilecloud.api.request.Request;
 import mobilecloud.api.response.GetAvailableServerResponse;
@@ -7,7 +10,7 @@ import mobilecloud.api.response.Response;
 import mobilecloud.engine.host.Host;
 import mobilecloud.server.handler.Handler;
 import server.TimedLRUCache;
-
+@Log4j2
 public class GetAvailableServerRequestHandler implements Handler{
 	
 	private TimedLRUCache<Host> cache;
@@ -22,7 +25,9 @@ public class GetAvailableServerRequestHandler implements Handler{
 		
 		GetAvailableServerResponse resp = new GetAvailableServerResponse();
 		resp.setSuccess(true);
-		resp.setServerList(cache.getAll());
+		List<Host> list = cache.getAll();
+		log.info("Available Server:" + list);
+		resp.setServerList(list);
 		return resp;
 	}
 }

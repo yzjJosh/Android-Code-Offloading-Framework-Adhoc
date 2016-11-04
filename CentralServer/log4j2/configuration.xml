@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Configuration>
+
+  <Properties>
+    <Property name="baseDir">logs</Property>
+  </Properties>
+
+  <Appenders>
+  
+    <Console name="STDOUT" target="SYSTEM_OUT">
+      <PatternLayout pattern="[%-5level][%t]%logger{36} - %msg%n" />
+      <ThresholdFilter level="error" onMatch="DENY" onMismatch="NEUTRAL"/>
+    </Console>
+
+    <Console name="STDERR" target="SYSTEM_ERR">
+      <PatternLayout pattern="[%-5level][%t]%logger{36} - %msg%n" />
+      <ThresholdFilter level="error"/>
+    </Console>
+
+    <RollingFile name="LOGFILE" fileName="${baseDir}/log.log" filePattern="${baseDir}/log-%i.log">
+      <ThresholdFilter level="debug" />
+      <Policies>
+        <SizeBasedTriggeringPolicy size="10 KB" />
+      </Policies>
+      <DefaultRolloverStrategy max="10"/>
+      <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n" />
+    </RollingFile>
+
+    <RollingFile name="ERRORFILE" fileName="${baseDir}/error.log" filePattern="${baseDir}/error-%i.log">
+      <ThresholdFilter level="error" />
+      <Policies>
+        <SizeBasedTriggeringPolicy size="10 KB" />
+      </Policies>
+      <DefaultRolloverStrategy max="10"/>
+      <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n" />
+    </RollingFile>
+
+  </Appenders>
+
+  <Loggers>
+
+    <Logger name="TestDebug" level="debug" />
+    <Logger name="TestError" level="error" />
+
+    <Root level="trace">
+      <AppenderRef ref="STDOUT" />
+      <AppenderRef ref="STDERR" />
+      <AppenderRef ref="LOGFILE" />
+      <AppenderRef ref="ERRORFILE" />
+    </Root>
+  </Loggers>
+</Configuration>

@@ -54,4 +54,11 @@ public class CentralServer {
 		out.get().writeObject(resp);
 		out.get().flush();
 	}
+	
+	public static void main(String[] args) {
+		CentralServer centralServer = new CentralServer(Config.TIME_OUT);
+		CentralServerThread centralServerThread = new CentralServerThread(Config.PORT, centralServer);
+		centralServerThread.start();
+		
+	}
 }
