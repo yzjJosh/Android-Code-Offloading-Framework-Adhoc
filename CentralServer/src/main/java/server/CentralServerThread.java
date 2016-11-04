@@ -5,13 +5,15 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import lombok.extern.log4j.Log4j2;
 
+@Log4j2
 public class CentralServerThread extends Thread {
 	private final int port;
 	private ServerSocket serverSocket;
 	private boolean stopSign;
 	private CentralServer centralServer;
-
+	
 	public CentralServerThread(int port, CentralServer centralServer) {
 		this.port = port;
 		this.stopSign = false;
@@ -20,6 +22,7 @@ public class CentralServerThread extends Thread {
 
 	@Override
 	public void run() {
+		log.info("Thread starting...");
 		ExecutorService executor = Executors.newCachedThreadPool();
 		try {
 			serverSocket = new ServerSocket(port);
