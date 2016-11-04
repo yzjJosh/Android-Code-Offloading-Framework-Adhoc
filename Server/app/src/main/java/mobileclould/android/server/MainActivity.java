@@ -109,7 +109,7 @@ public class MainActivity extends Activity implements ServiceConnection, ServerL
     @Override
     public void onRequestReceived(Request request) {
         int priority = request.getClass() == MonitorHostRequest.class? Log.DEBUG: Log.INFO;
-        Timber.log(priority, "Receive request %s.", request.toString());
+        Timber.log(priority, "Receive request %s from %s.", request.toString(), request.getFromIp());
     }
 
     @Override

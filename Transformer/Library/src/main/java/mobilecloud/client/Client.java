@@ -84,6 +84,8 @@ public class Client {
             lock.unlock(host);
         }
         
+        request.setFromIp(socket.getLocalAddress().getHostAddress());
+        
         try {
             ObjectInputStreamWrapper is = new ObjectInputStreamWrapper(
                     new BufferedInputStream(socket.getInputStream()));

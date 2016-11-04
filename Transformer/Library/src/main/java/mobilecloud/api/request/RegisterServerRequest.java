@@ -4,7 +4,6 @@ public class RegisterServerRequest extends Request {
     private static final long serialVersionUID = 1L;
 
     private int serverPort;
-    private String serverIp;
     
     public RegisterServerRequest setServerPort(int port) {
         this.serverPort = port;
@@ -13,15 +12,6 @@ public class RegisterServerRequest extends Request {
     
     public int getServerPort() {
         return serverPort;
-    }
-    
-    public RegisterServerRequest setServerIp(String ip) {
-    	this.serverIp = ip;
-    	return this;
-    }
-    
-    public String getServerIp() {
-    	return this.serverIp;
     }
     
     @Override

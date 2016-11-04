@@ -23,7 +23,7 @@ public class RegisterServerRequestHandler implements Handler{
 		
 		RegisterServerRequest req = (RegisterServerRequest) request;
 		int serverPort = req.getServerPort();
-		String serverIp = req.getServerIp();
+		String serverIp = req.getFromIp();
 		Host host = new Host(serverIp, serverPort); 
 		cache.add(host);
 		log.info("New Host added: " + host);

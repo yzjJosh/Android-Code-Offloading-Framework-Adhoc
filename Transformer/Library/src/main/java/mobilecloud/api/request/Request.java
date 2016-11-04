@@ -7,6 +7,7 @@ import java.io.Serializable;
  */
 public abstract class Request implements Serializable {
     private static final long serialVersionUID = 1L;
+    private String fromIp;
     private transient String ip;
     private transient int port;
 
@@ -25,6 +26,15 @@ public abstract class Request implements Serializable {
 
     public Request setPort(int port) {
         this.port = port;
+        return this;
+    }
+    
+    public String getFromIp() {
+        return fromIp;
+    }
+    
+    public Request setFromIp(String fromIp) {
+        this.fromIp = fromIp;
         return this;
     }
 }
