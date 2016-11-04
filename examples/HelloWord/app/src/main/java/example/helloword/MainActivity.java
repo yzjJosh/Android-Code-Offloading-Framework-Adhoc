@@ -3,13 +3,10 @@ package example.helloword;
 import android.app.Activity;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
-import mobilecloud.engine.host.Host;
-import mobilecloud.engine.host.provider.StaticHostProvider;
 import mobilecloud.lib.Remote;
 
 
@@ -21,10 +18,6 @@ public class MainActivity extends Activity implements View.OnClickListener{
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        // Set server ip and port
-        StaticHostProvider.addHost(new Host("127.0.0.1", 50382));
-        StaticHostProvider.addHost(new Host("192.168.0.16", 50382));
 
         Button btn = (Button) findViewById(R.id.btn);
         btn.setOnClickListener(this);

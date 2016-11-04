@@ -17,10 +17,10 @@ import android.widget.Spinner;
 import android.widget.Switch;
 import android.widget.TextView;
 
-import mobilecloud.api.MonitorHostRequest;
-import mobilecloud.api.MonitorHostResponse;
-import mobilecloud.api.Request;
-import mobilecloud.api.Response;
+import mobilecloud.api.request.MonitorHostRequest;
+import mobilecloud.api.response.MonitorHostResponse;
+import mobilecloud.api.request.Request;
+import mobilecloud.api.response.Response;
 import mobilecloud.server.ServerListener;
 import mobileclould.android.server.logger.ConsoleTree;
 import mobileclould.android.server.logger.LogCatTree;

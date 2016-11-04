@@ -1,7 +1,15 @@
 package mobilecloud.server.register;
 
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.util.Collections;
+import java.util.List;
+
+import org.apache.http.conn.util.InetAddressUtils;
+
 import mobilecloud.api.request.RegisterServerRequest;
 import mobilecloud.client.Client;
+import mobilecloud.engine.Config;
 import mobilecloud.engine.host.Host;
 
 /**
@@ -15,6 +23,15 @@ public class Register {
     private final long period;
     private final Client client;
     private WorkerThread thread;
+    
+    /**
+     * Initiate this register with a port number and a period
+     * @param port the port number to be registered to central server
+     * @param period the registering period
+     */
+    public Register(int port, long period) {
+        this(new Host(Config.CENTRAL_SERVER_IP_ADDR, Config.CENTRAL_SERVER_PORT_NUMBER), port, period, Client.getInstance());
+    }
     
     /**
      * Initiate this register with a port number
@@ -50,6 +67,39 @@ public class Register {
         }
     }
     
+    /**
+     * Get the ip address of android device
+     * @param useIPv4 use ip v4 or not
+     * @return the ip address
+     */
+    private String getDeviceIPAddress(boolean useIPv4) {
+        try {
+            List<NetworkInterface> networkInterfaces = Collections.list(NetworkInterface.getNetworkInterfaces());
+            for (NetworkInterface networkInterface : networkInterfaces) {
+                List<InetAddress> inetAddresses = Collections.list(networkInterface.getInetAddresses());
+                for (InetAddress inetAddress : inetAddresses) {
+                    if (!inetAddress.isLoopbackAddress()) {
+                        String sAddr = inetAddress.getHostAddress().toUpperCase();
+                        boolean isIPv4 = InetAddressUtils.isIPv4Address(sAddr);
+                        if (useIPv4) {
+                            if (isIPv4)
+                                return sAddr;
+                        } else {
+                            if (!isIPv4) {
+                                // drop ip6 port suffix
+                                int delim = sAddr.indexOf('%');
+                                return delim < 0 ? sAddr : sAddr.substring(0, delim);
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        return "";
+    }
+    
     private class WorkerThread extends Thread {
         
         private boolean stopSign = false;
@@ -58,7 +108,8 @@ public class Register {
         public void run() {
             while(!stopSign) {
                 RegisterServerRequest req = new RegisterServerRequest();
-                req.setServerPort(port).setIp(centralServer.ip).setPort(centralServer.port);
+                req.setServerIp(getDeviceIPAddress(true)).setServerPort(port).setIp(centralServer.ip)
+                        .setPort(centralServer.port);
                 try {
                     client.request(req);
                 } catch (Exception e) {

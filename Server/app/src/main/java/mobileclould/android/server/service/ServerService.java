@@ -7,13 +7,13 @@ import android.os.IBinder;
 
 import mobilecloud.server.Server;
 import mobilecloud.server.ServerListener;
+import mobilecloud.server.register.Register;
 import mobileclould.android.server.Config;
 
 public class ServerService extends Service {
 
-    public static final String PORT_NUMBER_KEY = "PORT_NUMBER";
-
     private ServerThread thread;
+    private Register register;
     private IBinder binder = new ServiceBinder();
 
     @Override
@@ -27,6 +27,8 @@ public class ServerService extends Service {
     public synchronized void startServer(int port) {
         if(thread == null) {
             Server.init(this);
+            register = new Register(Config.PORT_NUMBER, Config.CENTRAL_SERVER_REGISTER_PERIOD);
+            register.start();
             thread = new ServerThread(port);
             thread.start();
         } else {
@@ -39,6 +41,7 @@ public class ServerService extends Service {
      */
     public synchronized void stopServer() {
         if(thread != null) {
+            register.stop();
             thread.kill();
             thread = null;
         }
