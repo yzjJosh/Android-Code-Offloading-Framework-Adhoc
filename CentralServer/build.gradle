@@ -1,5 +1,7 @@
 apply plugin: 'java'
 
+version = '1.0'
+
 // In this section you declare where to find the dependencies of your project
 repositories {
     jcenter()
@@ -17,8 +19,22 @@ dependencies {
     compile group: 'Transformer', name: 'Library', version: '1.0'
 }
 
+
+jar {
+    manifest {
+        attributes('Implementation-Title': 'CentralServer',
+            'Implementation-Version': version,
+            'Main-Class': 'server.CentralServer')
+    }
+
+    from {
+        configurations.runtime.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
+
 task run(type:JavaExec) {
 	main = "server.CentralServer"
 	classpath = sourceSets.main.runtimeClasspath
 	systemProperties = ['log4j.configurationFile': 'log4j2/configuration.xml']
 }
+
