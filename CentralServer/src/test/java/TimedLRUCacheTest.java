@@ -1,4 +1,7 @@
 import org.junit.Test;
+
+import server.TimedLRUCache;
+
 import static org.junit.Assert.*;
 
 /*

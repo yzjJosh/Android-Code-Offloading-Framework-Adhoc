@@ -6,6 +6,7 @@ import java.net.Socket;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import mobilecloud.api.request.GetAvailableServerRequest;
 import mobilecloud.api.request.MonitorHostRequest;
 import mobilecloud.api.request.RegisterServerRequest;
 import mobilecloud.api.request.RemoteInvocationRequest;
@@ -13,6 +14,7 @@ import mobilecloud.api.request.Request;
 import mobilecloud.api.request.UploadApplicationExecutableRequest;
 import mobilecloud.api.response.Response;
 import mobilecloud.api.deliverer.Deliverer;
+import mobilecloud.api.deliverer.GetAvailableServerRequestDeliverer;
 import mobilecloud.api.deliverer.MonitorHostRequestDeliverer;
 import mobilecloud.api.deliverer.RegisterServerRequestDeliverer;
 import mobilecloud.api.deliverer.RemoteInvocationRequestDeliverer;
@@ -45,6 +47,7 @@ public class Client {
         this.registerDeliverer(UploadApplicationExecutableRequest.class.getName(),
                 new UploadApplicationExecutableRequestDeliverer());
         this.registerDeliverer(RegisterServerRequest.class.getName(), new RegisterServerRequestDeliverer());
+        this.registerDeliverer(GetAvailableServerRequest.class.getName(), new GetAvailableServerRequestDeliverer());
     }
     
     /**
