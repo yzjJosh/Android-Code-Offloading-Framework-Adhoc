@@ -12,5 +12,4 @@ public class MonitorHostRequestReceiver implements Receiver {
         return (MonitorHostRequest) is.get().readObject();
     }
 
-
 }

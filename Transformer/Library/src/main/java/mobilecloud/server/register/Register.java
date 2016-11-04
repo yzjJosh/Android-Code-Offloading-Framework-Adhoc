@@ -66,10 +66,7 @@ public class Register {
                 }
                 try {
                     Thread.sleep(period);
-                } catch(InterruptedException e) {
-                    e.printStackTrace();
-                }
-                
+                } catch(InterruptedException e) {}
             }
         }
         
