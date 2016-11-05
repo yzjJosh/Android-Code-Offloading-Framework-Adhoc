@@ -27,7 +27,7 @@ public class ServerService extends Service {
     public synchronized void startServer(int port) {
         if(thread == null) {
             Server.init(this);
-            register = new Register(Config.PORT_NUMBER, Config.CENTRAL_SERVER_REGISTER_PERIOD);
+            register = new Register(port, Config.CENTRAL_SERVER_REGISTER_PERIOD);
             register.start();
             thread = new ServerThread(port);
             thread.start();
