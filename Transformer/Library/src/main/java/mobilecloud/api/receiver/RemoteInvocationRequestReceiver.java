@@ -2,36 +2,53 @@ package mobilecloud.api.receiver;
 
 import mobilecloud.api.request.RemoteInvocationRequest;
 import mobilecloud.api.request.Request;
+import mobilecloud.metric.MetricGenerator;
 import mobilecloud.server.ExecutableLoader;
 import mobilecloud.server.NoApplicationExecutableException;
-import mobilecloud.utils.AdvancedObjectInputStream;
-import mobilecloud.utils.ObjectInputStreamWrapper;
-import mobilecloud.utils.ObjectOutputStreamWrapper;
+import mobilecloud.utils.AdvancedObjectInputStreamWrapper;
+import mobilecloud.utils.AdvancedObjectOutputStreamWrapper;
 
-public class RemoteInvocationRequestReceiver implements Receiver {
+public class RemoteInvocationRequestReceiver implements Receiver<Request> {
     
     private final ExecutableLoader exeLoader;
+    private final MetricGenerator metricGenerator;
     
     public RemoteInvocationRequestReceiver(ExecutableLoader exeLoader) {
+        this(exeLoader, null);
+    }
+    
+    public RemoteInvocationRequestReceiver(ExecutableLoader exeLoader, MetricGenerator metricGenerator) {
         this.exeLoader = exeLoader;
+        this.metricGenerator = metricGenerator;
     }
 
     @Override
-    public Request receive(ObjectInputStreamWrapper is, ObjectOutputStreamWrapper os) throws Exception {
+    public Request receive(AdvancedObjectInputStreamWrapper is, AdvancedObjectOutputStreamWrapper os) throws Exception {
         String appId = (String) is.get().readObject();
         ClassLoader cl = null;
         try {
             cl = exeLoader.loadExecutable(appId);
+            os.get().resetStat();
             os.get().writeBoolean(true);
             os.get().flush();
+            if(metricGenerator != null) {
+                metricGenerator.reportWrite(os.get().getBytesWritten());
+            }
         } catch (NoApplicationExecutableException e) {
+            os.get().resetStat();
             os.get().writeBoolean(false);
             os.get().flush();
+            if(metricGenerator != null) {
+                metricGenerator.reportWrite(os.get().getBytesWritten());
+            }
             throw e;
         }
-        AdvancedObjectInputStream stream = (AdvancedObjectInputStream) is.get();
-        stream.setClassLoader(cl);
-        RemoteInvocationRequest res = (RemoteInvocationRequest) stream.readObject();
+        is.get().setClassLoader(cl);
+        is.get().resetStat();
+        RemoteInvocationRequest res = (RemoteInvocationRequest) is.get().readObject();
+        if(metricGenerator != null) {
+            metricGenerator.reportRead(is.get().getBytesRead());
+        }
         res.setApplicationId(appId);
         return res;
     }

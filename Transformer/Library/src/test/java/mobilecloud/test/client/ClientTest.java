@@ -5,6 +5,7 @@ import static org.junit.Assert.*;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.InetAddress;
 import java.net.Socket;
 import java.util.LinkedList;
 import java.util.List;
@@ -26,8 +27,8 @@ import mobilecloud.client.Client;
 import mobilecloud.client.SocketBuilder;
 import mobilecloud.api.deliverer.Deliverer;
 import mobilecloud.utils.IOUtils;
-import mobilecloud.utils.ObjectInputStreamWrapper;
-import mobilecloud.utils.ObjectOutputStreamWrapper;
+import mobilecloud.utils.AdvancedObjectInputStreamWrapper;
+import mobilecloud.utils.AdvancedObjectOutputStreamWrapper;
 
 public class ClientTest {
     
@@ -39,10 +40,10 @@ public class ClientTest {
         private static final long serialVersionUID = 1L;
     }
     
-    private static class TestRequestDeliverer implements Deliverer {
+    private static class TestRequestDeliverer implements Deliverer<Request> {
 
         @Override
-        public void deliver(Request request, ObjectInputStreamWrapper is, ObjectOutputStreamWrapper os)
+        public void deliver(Request request, AdvancedObjectInputStreamWrapper is, AdvancedObjectOutputStreamWrapper os)
                 throws Exception {
             os.get().writeObject(request);
             os.get().flush();
@@ -57,6 +58,8 @@ public class ClientTest {
     @Before
     public void setUp() throws Exception {
         socket = Mockito.mock(Socket.class);
+        InetAddress addr = Mockito.mock(InetAddress.class);
+        Mockito.when(socket.getLocalAddress()).thenReturn(addr);
         
         SocketBuilder builder = Mockito.mock(SocketBuilder.class);
         Mockito.when(builder.build(Matchers.anyString(), Matchers.anyInt(), Matchers.anyInt())).thenReturn(socket);

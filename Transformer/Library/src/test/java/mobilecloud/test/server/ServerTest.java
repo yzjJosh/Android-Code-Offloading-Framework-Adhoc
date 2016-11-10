@@ -18,6 +18,7 @@ import mobilecloud.api.response.IllegalRequestResponse;
 import mobilecloud.api.response.InternalServerErrorResponse;
 import mobilecloud.api.response.RemoteInvocationResponse;
 import mobilecloud.api.response.Response;
+import mobilecloud.metric.MetricGenerator;
 import mobilecloud.objs.ObjectMigrator;
 import mobilecloud.objs.Token;
 import mobilecloud.server.ExecutableLoader;
@@ -61,7 +62,7 @@ public class ServerTest {
     public void setUp() throws IOException, NoSuchMethodException, SecurityException, NoApplicationExecutableException {
         ExecutableLoader loader = Mockito.mock(ExecutableLoader.class);
         Mockito.when(loader.loadExecutable(Matchers.anyString())).thenReturn(ClassLoader.getSystemClassLoader());
-        server = new Server(loader);
+        server = new Server(loader, new MetricGenerator());
         f = new Foo();
         sum = Foo.class.getMethod("sum", String.class, int.class);
         req = buildRequest(sum, f, args);

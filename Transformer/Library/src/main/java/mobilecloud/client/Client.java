@@ -20,8 +20,8 @@ import mobilecloud.api.deliverer.RegisterServerRequestDeliverer;
 import mobilecloud.api.deliverer.RemoteInvocationRequestDeliverer;
 import mobilecloud.api.deliverer.UploadApplicationExecutableRequestDeliverer;
 import mobilecloud.engine.host.Host;
-import mobilecloud.utils.ObjectInputStreamWrapper;
-import mobilecloud.utils.ObjectOutputStreamWrapper;
+import mobilecloud.utils.AdvancedObjectInputStreamWrapper;
+import mobilecloud.utils.AdvancedObjectOutputStreamWrapper;
 
 /**
  * A client which interacts with server
@@ -34,7 +34,7 @@ public class Client {
     private final SocketBuilder builder;
     private final TimerKeyLock lock;
     private final int conenctionTimeOut;
-    private final Map<String, Deliverer> deliverers;
+    private final Map<String, Deliverer<Request>> deliverers;
     
     public Client(SocketBuilder builder, int minRequestInterval, int conenctionTimeOut) {
         this.builder = builder;
@@ -56,7 +56,7 @@ public class Client {
      * @param deliverer the deliverer to deliver request
      * @return this client
      */
-    public Client registerDeliverer(String requestName, Deliverer deliverer) {
+    public Client registerDeliverer(String requestName, Deliverer<Request> deliverer) {
         this.deliverers.put(requestName, deliverer);
         return this;
     }
@@ -68,7 +68,7 @@ public class Client {
      * @throws Exception if any problem occurs during the request
      */
     public Response request(Request request) throws Exception {
-        Deliverer deliverer = deliverers.get(request.getClass().getName());
+        Deliverer<Request> deliverer = deliverers.get(request.getClass().getName());
         if (deliverer == null) {
             throw new IllegalArgumentException("No deliverer to handle " + request.getClass().getName());
         }
@@ -87,9 +87,9 @@ public class Client {
         request.setFromIp(socket.getLocalAddress().getHostAddress());
         
         try {
-            ObjectInputStreamWrapper is = new ObjectInputStreamWrapper(
+            AdvancedObjectInputStreamWrapper is = new AdvancedObjectInputStreamWrapper(
                     new BufferedInputStream(socket.getInputStream()));
-            ObjectOutputStreamWrapper os = new ObjectOutputStreamWrapper(
+            AdvancedObjectOutputStreamWrapper os = new AdvancedObjectOutputStreamWrapper(
                     new BufferedOutputStream(socket.getOutputStream()));
             
             //Firstly send request type

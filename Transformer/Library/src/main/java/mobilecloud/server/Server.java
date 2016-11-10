@@ -16,6 +16,8 @@ import mobilecloud.api.response.IllegalRequestResponse;
 import mobilecloud.api.response.InternalServerErrorResponse;
 import mobilecloud.api.response.Response;
 import mobilecloud.engine.Engine;
+import mobilecloud.metric.Metric;
+import mobilecloud.metric.MetricGenerator;
 import mobilecloud.server.handler.Handler;
 import mobilecloud.server.handler.invocation.RemoteInvocationHandler;
 import mobilecloud.server.handler.monitorhost.MonitorHostRequestHandler;
@@ -25,8 +27,7 @@ import mobilecloud.api.receiver.Receiver;
 import mobilecloud.api.receiver.RemoteInvocationRequestReceiver;
 import mobilecloud.api.receiver.UploadApplicationExecutableRequestReceiver;
 import mobilecloud.utils.AdvancedObjectInputStreamWrapper;
-import mobilecloud.utils.ObjectInputStreamWrapper;
-import mobilecloud.utils.ObjectOutputStreamWrapper;
+import mobilecloud.utils.AdvancedObjectOutputStreamWrapper;
 
 /**
  * A server object
@@ -37,11 +38,13 @@ public class Server {
     private static Server instance;
     
     private final Map<String, Handler> handlers;
-    private final Map<String, Receiver> receivers;
+    private final Map<String, Receiver<Request>> receivers;
+    private final MetricGenerator metricGenerator;
     
-    public Server(ExecutableLoader executableLoader) {
+    public Server(ExecutableLoader executableLoader, MetricGenerator metricGenerator) {
         this.handlers = new ConcurrentHashMap<>();
         this.receivers = new ConcurrentHashMap<>();
+        this.metricGenerator = metricGenerator;
 
         this.registerHandler(RemoteInvocationRequest.class.getName(), new RemoteInvocationHandler(executableLoader));
         this.registerHandler(UploadApplicationExecutableRequest.class.getName(),
@@ -49,10 +52,10 @@ public class Server {
         this.registerHandler(MonitorHostRequest.class.getName(), new MonitorHostRequestHandler());
 
         this.registerReceiver(RemoteInvocationRequest.class.getName(),
-                new RemoteInvocationRequestReceiver(executableLoader));
+                new RemoteInvocationRequestReceiver(executableLoader, metricGenerator));
         this.registerReceiver(UploadApplicationExecutableRequest.class.getName(),
-                new UploadApplicationExecutableRequestReceiver(executableLoader));
-        this.registerReceiver(MonitorHostRequest.class.getName(), new MonitorHostRequestReceiver());
+                new UploadApplicationExecutableRequestReceiver(executableLoader, metricGenerator));
+        this.registerReceiver(MonitorHostRequest.class.getName(), new MonitorHostRequestReceiver(metricGenerator));
     }
     
     /**
@@ -72,9 +75,17 @@ public class Server {
      * @param receiver the receiver to receive a request
      * @return this server
      */
-    public Server registerReceiver(String type, Receiver receiver) {
+    public Server registerReceiver(String type, Receiver<Request> receiver) {
         this.receivers.put(type, receiver);
         return this;
+    }
+    
+    /**
+     * Get the current metric of this server
+     * @return current metric
+     */
+    public Metric getMetric() {
+        return metricGenerator.getMetric();
     }
     
     /**
@@ -103,14 +114,14 @@ public class Server {
      * @throws Exception if error happens
      */
     public void serve(InputStream is, OutputStream os, ServerListener listener) throws Exception {
-        ObjectInputStreamWrapper in = new AdvancedObjectInputStreamWrapper(new BufferedInputStream(is));
-        ObjectOutputStreamWrapper out = new ObjectOutputStreamWrapper(new BufferedOutputStream(os));
+        AdvancedObjectInputStreamWrapper in = new AdvancedObjectInputStreamWrapper(new BufferedInputStream(is));
+        AdvancedObjectOutputStreamWrapper out = new AdvancedObjectOutputStreamWrapper(new BufferedOutputStream(os));
 
         // Read type of request
         String type = (String) in.get().readObject();
 
         // Get receiver
-        Receiver receiver = receivers.get(type);
+        Receiver<Request> receiver = receivers.get(type);
         if (receiver == null) {
             throw new IllegalRequestException(type);
         }
@@ -148,7 +159,7 @@ public class Server {
         if(instance == null) {
             synchronized(Server.class) {
                 if(instance == null) {
-                    instance = new Server(new ExecutableLoader(context));
+                    instance = new Server(new ExecutableLoader(context), MetricGenerator.getInstance());
                 }
             }
         }

@@ -5,7 +5,8 @@ import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 
 /**
- * A wrapper which wraps an output stream. It can construct an object output stream in on-demand manner
+ * A wrapper which wraps an output stream. It can construct an object output
+ * stream in on-demand manner
  */
 public class ObjectOutputStreamWrapper {
 

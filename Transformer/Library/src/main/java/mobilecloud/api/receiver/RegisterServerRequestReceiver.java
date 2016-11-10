@@ -2,14 +2,23 @@ package mobilecloud.api.receiver;
 
 import mobilecloud.api.request.RegisterServerRequest;
 import mobilecloud.api.request.Request;
-import mobilecloud.utils.ObjectInputStreamWrapper;
-import mobilecloud.utils.ObjectOutputStreamWrapper;
+import mobilecloud.metric.MetricGenerator;
+import mobilecloud.utils.AdvancedObjectInputStreamWrapper;
+import mobilecloud.utils.AdvancedObjectOutputStreamWrapper;
 
-public class RegisterServerRequestReceiver implements Receiver{
+public class RegisterServerRequestReceiver extends SimpleReceiver<Request> {
+    
+    public RegisterServerRequestReceiver() {
+        super();
+    }
+    
+    public RegisterServerRequestReceiver(MetricGenerator metricGenerator) {
+        super(metricGenerator);
+    }
 
     @Override
-    public Request receive(ObjectInputStreamWrapper is, ObjectOutputStreamWrapper os) throws Exception {
-        return (RegisterServerRequest) is.get().readObject();
+    public Request receive(AdvancedObjectInputStreamWrapper is, AdvancedObjectOutputStreamWrapper os) throws Exception {
+        return (RegisterServerRequest) super.receive(is, os);
     }
 
 }

@@ -33,6 +33,7 @@ import mobilecloud.engine.host.monitor.HostMonitor;
 import mobilecloud.engine.host.monitor.HostStatusChangeListener;
 import mobilecloud.engine.schedular.Schedular;
 import mobilecloud.lib.listener.DefaultRemoteExecutionListener;
+import mobilecloud.metric.MetricGenerator;
 import mobilecloud.server.ExecutableLoader;
 import mobilecloud.server.NoApplicationExecutableException;
 import mobilecloud.server.Server;
@@ -194,7 +195,7 @@ public class EngineTest {
             
         }).when(loader).loadExecutable(Matchers.anyString());
         
-        server = new Server(loader);
+        server = new Server(loader, new MetricGenerator());
         
         client = Mockito.mock(Client.class);
         Mockito.when(client.request(Matchers.any(Request.class))).thenAnswer(new Answer<Response>() {

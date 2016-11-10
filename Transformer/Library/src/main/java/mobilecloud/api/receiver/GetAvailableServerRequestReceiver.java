@@ -2,14 +2,23 @@ package mobilecloud.api.receiver;
 
 import mobilecloud.api.request.GetAvailableServerRequest;
 import mobilecloud.api.request.Request;
-import mobilecloud.utils.ObjectInputStreamWrapper;
-import mobilecloud.utils.ObjectOutputStreamWrapper;
+import mobilecloud.metric.MetricGenerator;
+import mobilecloud.utils.AdvancedObjectInputStreamWrapper;
+import mobilecloud.utils.AdvancedObjectOutputStreamWrapper;
 
-public class GetAvailableServerRequestReceiver implements Receiver{
+public class GetAvailableServerRequestReceiver extends SimpleReceiver<Request>{
+    
+    public GetAvailableServerRequestReceiver() {
+        super();
+    }
+    
+    public GetAvailableServerRequestReceiver(MetricGenerator metricGenerator) {
+        super(metricGenerator);
+    }
 
     @Override
-    public Request receive(ObjectInputStreamWrapper is, ObjectOutputStreamWrapper os) throws Exception {
-        return (GetAvailableServerRequest) is.get().readObject();
+    public Request receive(AdvancedObjectInputStreamWrapper is, AdvancedObjectOutputStreamWrapper os) throws Exception {
+        return (GetAvailableServerRequest) super.receive(is, os);
     }
 
 }
