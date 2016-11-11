@@ -126,6 +126,7 @@ public class Server {
         if(handler == null) {
             return new IllegalRequestResponse(new IllegalRequestException(request.getClass().getName()));
         }
+        metricGenerator.reportRequest();
         try{
             return handler.handle(request);
         } catch(Exception e) {
