@@ -8,16 +8,18 @@ public class Metric implements Serializable {
     public final int readBPS;
     public final int writeBPS;
     public final double cpuLoadPercentage;
+    public final int requestPerSecond;
     
-    public Metric(int readBPS, int writeBPS, double cpuLoadPercentage) {
+    public Metric(int readBPS, int writeBPS, double cpuLoadPercentage, int requestPerSecond) {
         this.readBPS = readBPS;
         this.writeBPS = writeBPS;
         this.cpuLoadPercentage = cpuLoadPercentage;
+        this.requestPerSecond = requestPerSecond;
     }
 
     @Override
     public String toString() {
-        return "readBPS: " + readBPS + "bps, writeBPS: " + writeBPS + "bps, cpuLoad: " + cpuLoadPercentage + "%";
+        return "readBPS: " + readBPS + "bps, writeBPS: " + writeBPS + "bps, cpuLoad: " + cpuLoadPercentage + "%, requestPerSecond: " + requestPerSecond;
     }
     
 }
