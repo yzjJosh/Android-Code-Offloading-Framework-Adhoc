@@ -8,9 +8,9 @@ public class Metric implements Serializable {
     public final int readBPS;
     public final int writeBPS;
     public final double cpuLoadPercentage;
-    public final int requestPerSecond;
+    public final double requestPerSecond;
     
-    public Metric(int readBPS, int writeBPS, double cpuLoadPercentage, int requestPerSecond) {
+    public Metric(int readBPS, int writeBPS, double cpuLoadPercentage, double requestPerSecond) {
         this.readBPS = readBPS;
         this.writeBPS = writeBPS;
         this.cpuLoadPercentage = cpuLoadPercentage;
