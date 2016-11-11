@@ -7,7 +7,7 @@ import java.util.TreeSet;
 import mobilecloud.engine.host.Host;
 import mobilecloud.metric.Metric;
 
-public class LeastConnectionSchedular extends Schedular {
+public class CPULoadSchedular extends Schedular {
 	private static class HostWrapper implements Comparator<HostWrapper> {
 		public Host host;
 		public Metric metric;
@@ -28,13 +28,13 @@ public class LeastConnectionSchedular extends Schedular {
 			} else if (m2 == null) {
 				return -1;
 			} else {
-				if (m1.requestPerSecond != m2.requestPerSecond) {
-					Double d1 = new Double(m1.requestPerSecond);
-					Double d2 = new Double(m2.requestPerSecond);
-					return d1.compareTo(d2);
-				} else if (m1.cpuLoadPercentage != m2.cpuLoadPercentage) {
+				if (m1.cpuLoadPercentage != m2.cpuLoadPercentage) {
 					Double d1 = new Double(m1.cpuLoadPercentage);
 					Double d2 = new Double(m2.cpuLoadPercentage);
+					return d1.compareTo(d2);
+				} else if (m1.requestPerSecond != m2.requestPerSecond) {
+					Double d1 = new Double(m1.requestPerSecond);
+					Double d2 = new Double(m2.requestPerSecond);
 					return d1.compareTo(d2);
 				} else {
 					int readAndWritePerSecond1 = m1.readBPS + m1.writeBPS;
@@ -47,10 +47,11 @@ public class LeastConnectionSchedular extends Schedular {
 
 	TreeSet<HostWrapper> queue = new TreeSet<>();
 	Map<Host, HostWrapper> map = new HashMap<>();
-	
+
 	@Override
 	public Host schedule() {
-		if(!haveAvailable()) return null;
+		if (!haveAvailable())
+			return null;
 		return queue.first().host;
 	}
 
@@ -66,12 +67,13 @@ public class LeastConnectionSchedular extends Schedular {
 
 	@Override
 	public boolean haveAvailable() {
-		return availableNum()!=0;
+		return availableNum() != 0;
 	}
 
 	@Override
 	public void addHost(Host host) {
-		if(map.containsKey(host)) return;
+		if (map.containsKey(host))
+			return;
 		HostWrapper hostWrapper = new HostWrapper(host, null);
 		queue.add(hostWrapper);
 		map.put(host, hostWrapper);
@@ -79,7 +81,8 @@ public class LeastConnectionSchedular extends Schedular {
 
 	@Override
 	public void removeHost(Host host) {
-		if(!map.containsKey(host)) return;
+		if (!map.containsKey(host))
+			return;
 		HostWrapper hostWrapper = map.remove(host);
 		queue.remove(hostWrapper);
 	}
@@ -87,7 +90,7 @@ public class LeastConnectionSchedular extends Schedular {
 	@Override
 	public void updateMetric(Host host, Metric metric) {
 		HostWrapper hostWrapper = map.get(host);
-		if(hostWrapper == null) {
+		if (hostWrapper == null) {
 			hostWrapper = new HostWrapper(host, metric);
 			queue.add(hostWrapper);
 			map.put(host, hostWrapper);
