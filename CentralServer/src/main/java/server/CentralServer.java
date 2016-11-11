@@ -22,11 +22,10 @@ import mobilecloud.api.response.RegisterServerResponse;
 import mobilecloud.api.response.Response;
 import mobilecloud.engine.host.Host;
 import mobilecloud.server.IllegalRequestException;
+import mobilecloud.server.IllegalResponseException;
 import mobilecloud.server.handler.Handler;
 import mobilecloud.utils.AdvancedObjectInputStreamWrapper;
 import mobilecloud.utils.AdvancedObjectOutputStreamWrapper;
-import mobilecloud.utils.ObjectInputStreamWrapper;
-import mobilecloud.utils.ObjectOutputStreamWrapper;
 
 public class CentralServer {
 	public TimedLRUCache<Host> cache;
@@ -69,7 +68,7 @@ public class CentralServer {
 		Response resp = handler.handle(req);
 		Deliverer<Response> deliverer = deliverers.get(resp.getClass().getName());
 		if (deliverer == null) {
-			throw new IllegalRequestException(resp.getClass().getName());
+			throw new IllegalResponseException(resp.getClass().getName());
 		}
 		out.get().writeObject(resp.getClass().getName());
 		out.get().flush();

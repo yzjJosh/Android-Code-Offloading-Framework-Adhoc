@@ -165,7 +165,7 @@ public class Server {
         Response resp = serve(req);
         Deliverer<Response> deliverer = deliverers.get(resp.getClass().getName());
         if (deliverer == null) {
-            throw new IllegalRequestException(resp.getClass().getName());
+            throw new IllegalResponseException(resp.getClass().getName());
         }
         
         out.get().writeObject(resp.getClass().getName());
