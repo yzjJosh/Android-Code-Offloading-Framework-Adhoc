@@ -22,6 +22,12 @@ import mobilecloud.server.handler.Handler;
 import mobilecloud.server.handler.invocation.RemoteInvocationHandler;
 import mobilecloud.server.handler.monitorhost.MonitorHostRequestHandler;
 import mobilecloud.server.handler.upload.UploadApplicationExecutableHandler;
+import mobilecloud.api.deliverer.Deliverer;
+import mobilecloud.api.deliverer.IllegalRequestResponseDeliverer;
+import mobilecloud.api.deliverer.InternalServerErrorResponseDeliverer;
+import mobilecloud.api.deliverer.MonitorHostResponseDeliverer;
+import mobilecloud.api.deliverer.RemoteInvocationResponseDeliverer;
+import mobilecloud.api.deliverer.UploadApplicationExecutableResponseDeliverer;
 import mobilecloud.api.receiver.MonitorHostRequestReceiver;
 import mobilecloud.api.receiver.Receiver;
 import mobilecloud.api.receiver.RemoteInvocationRequestReceiver;
@@ -39,11 +45,13 @@ public class Server {
     
     private final Map<String, Handler> handlers;
     private final Map<String, Receiver<Request>> receivers;
+    private final Map<String, Deliverer<Response>> deliverers;
     private final MetricGenerator metricGenerator;
     
     public Server(ExecutableLoader executableLoader, MetricGenerator metricGenerator) {
         this.handlers = new ConcurrentHashMap<>();
         this.receivers = new ConcurrentHashMap<>();
+        this.deliverers = new ConcurrentHashMap<>();
         this.metricGenerator = metricGenerator;
 
         this.registerHandler(RemoteInvocationRequest.class.getName(), new RemoteInvocationHandler(executableLoader));
@@ -56,6 +64,12 @@ public class Server {
         this.registerReceiver(UploadApplicationExecutableRequest.class.getName(),
                 new UploadApplicationExecutableRequestReceiver(executableLoader, metricGenerator));
         this.registerReceiver(MonitorHostRequest.class.getName(), new MonitorHostRequestReceiver(metricGenerator));
+
+        this.registerDeliverer(IllegalRequestResponseDeliverer.class.getName(), new IllegalRequestResponseDeliverer(metricGenerator));
+        this.registerDeliverer(InternalServerErrorResponseDeliverer.class.getName(), new InternalServerErrorResponseDeliverer(metricGenerator));
+        this.registerDeliverer(MonitorHostResponseDeliverer.class.getName(), new MonitorHostResponseDeliverer(metricGenerator));
+        this.registerDeliverer(RemoteInvocationResponseDeliverer.class.getName(), new RemoteInvocationResponseDeliverer(metricGenerator));
+        this.registerDeliverer(UploadApplicationExecutableResponseDeliverer.class.getName(), new UploadApplicationExecutableResponseDeliverer(metricGenerator));
     }
     
     /**
@@ -77,6 +91,17 @@ public class Server {
      */
     public Server registerReceiver(String type, Receiver<Request> receiver) {
         this.receivers.put(type, receiver);
+        return this;
+    }
+    
+    /**
+     * Register a deliverer to this server
+     * @param type the type of response
+     * @param deliverer the deliverer to deliver a response
+     * @return this server
+     */
+    public Server registerDeliverer(String type, Deliverer<Response> deliverer) {
+        this.deliverers.put(type, deliverer);
         return this;
     }
     
@@ -135,8 +160,14 @@ public class Server {
         }
         
         Response resp = serve(req);
-        out.get().writeObject(resp);
-        out.get().flush();
+        Deliverer<Response> deliverer = deliverers.get(resp.getClass().getName());
+        if (deliverer == null) {
+            throw new IllegalRequestException(resp.getClass().getName());
+        }
+        
+        out.get().writeObject(resp.getClass().getName());
+        deliverer.deliver(resp, in, out);
+        
         if(listener != null) {
             listener.onResponseSent(req, resp);
         }

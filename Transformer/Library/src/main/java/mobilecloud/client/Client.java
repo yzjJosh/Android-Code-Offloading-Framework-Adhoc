@@ -12,13 +12,28 @@ import mobilecloud.api.request.RegisterServerRequest;
 import mobilecloud.api.request.RemoteInvocationRequest;
 import mobilecloud.api.request.Request;
 import mobilecloud.api.request.UploadApplicationExecutableRequest;
+import mobilecloud.api.response.GetAvailableServerResponse;
+import mobilecloud.api.response.IllegalRequestResponse;
+import mobilecloud.api.response.InternalServerErrorResponse;
+import mobilecloud.api.response.MonitorHostResponse;
+import mobilecloud.api.response.RegisterServerResponse;
+import mobilecloud.api.response.RemoteInvocationResponse;
 import mobilecloud.api.response.Response;
+import mobilecloud.api.response.UploadApplicationExecutableResponse;
 import mobilecloud.api.deliverer.Deliverer;
 import mobilecloud.api.deliverer.GetAvailableServerRequestDeliverer;
 import mobilecloud.api.deliverer.MonitorHostRequestDeliverer;
 import mobilecloud.api.deliverer.RegisterServerRequestDeliverer;
 import mobilecloud.api.deliverer.RemoteInvocationRequestDeliverer;
 import mobilecloud.api.deliverer.UploadApplicationExecutableRequestDeliverer;
+import mobilecloud.api.receiver.GetAvailableServerResponseReceiver;
+import mobilecloud.api.receiver.IllegalRequestResponseReceiver;
+import mobilecloud.api.receiver.InternalServerErrorResponseReceiver;
+import mobilecloud.api.receiver.MonitorHostResponseReceiver;
+import mobilecloud.api.receiver.Receiver;
+import mobilecloud.api.receiver.RegisterServerResponseReceiver;
+import mobilecloud.api.receiver.RemoteInvocationResponseReceiver;
+import mobilecloud.api.receiver.UploadApplicationExecutableResponseReceiver;
 import mobilecloud.engine.host.Host;
 import mobilecloud.utils.AdvancedObjectInputStreamWrapper;
 import mobilecloud.utils.AdvancedObjectOutputStreamWrapper;
@@ -35,12 +50,14 @@ public class Client {
     private final TimerKeyLock lock;
     private final int conenctionTimeOut;
     private final Map<String, Deliverer<Request>> deliverers;
+    private final Map<String, Receiver<Response>> receivers;
     
     public Client(SocketBuilder builder, int minRequestInterval, int conenctionTimeOut) {
         this.builder = builder;
         this.lock = new TimerKeyLock(minRequestInterval);
         this.conenctionTimeOut = conenctionTimeOut;
         this.deliverers = new ConcurrentHashMap<>();
+        this.receivers = new ConcurrentHashMap<>();
         
         this.registerDeliverer(MonitorHostRequest.class.getName(), new MonitorHostRequestDeliverer());
         this.registerDeliverer(RemoteInvocationRequest.class.getName(), new RemoteInvocationRequestDeliverer());
@@ -48,6 +65,14 @@ public class Client {
                 new UploadApplicationExecutableRequestDeliverer());
         this.registerDeliverer(RegisterServerRequest.class.getName(), new RegisterServerRequestDeliverer());
         this.registerDeliverer(GetAvailableServerRequest.class.getName(), new GetAvailableServerRequestDeliverer());
+       
+        this.registerReceiver(GetAvailableServerResponse.class.getName(), new GetAvailableServerResponseReceiver());
+        this.registerReceiver(IllegalRequestResponse.class.getName(), new IllegalRequestResponseReceiver());
+        this.registerReceiver(InternalServerErrorResponse.class.getName(), new InternalServerErrorResponseReceiver());
+        this.registerReceiver(MonitorHostResponse.class.getName(), new MonitorHostResponseReceiver());
+        this.registerReceiver(RegisterServerResponse.class.getName(), new RegisterServerResponseReceiver());
+        this.registerReceiver(RemoteInvocationResponse.class.getName(), new RemoteInvocationResponseReceiver());
+        this.registerReceiver(UploadApplicationExecutableResponse.class.getName(), new UploadApplicationExecutableResponseReceiver());
     }
     
     /**
@@ -58,6 +83,17 @@ public class Client {
      */
     public Client registerDeliverer(String requestName, Deliverer<Request> deliverer) {
         this.deliverers.put(requestName, deliverer);
+        return this;
+    }
+    
+    /**
+     * Register a receiver for a specific response type
+     * @param responseName the response name
+     * @param receiver the receiver to receive response
+     * @return this client
+     */
+    public Client registerReceiver(String responseName, Receiver<Response> receiver) {
+        this.receivers.put(responseName, receiver);
         return this;
     }
     
@@ -99,7 +135,14 @@ public class Client {
             deliverer.deliver(request, is, os);
             
             //Get response
-            return (Response) is.get().readObject();
+            
+            String type = (String) is.get().readObject();
+            Receiver<Response> receiver = receivers.get(type);
+            if (receiver == null) {
+                throw new IllegalArgumentException("No receiver to handle " + type);
+            }
+            return receiver.receive(is, os);
+ 
         } finally {
             socket.close();
         }
