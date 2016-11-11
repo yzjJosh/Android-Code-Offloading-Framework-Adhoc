@@ -2,8 +2,11 @@ package mobilecloud.test.client;
 
 import static org.junit.Assert.*;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
@@ -26,7 +29,7 @@ import mobilecloud.api.response.Response;
 import mobilecloud.client.Client;
 import mobilecloud.client.SocketBuilder;
 import mobilecloud.api.deliverer.Deliverer;
-import mobilecloud.utils.IOUtils;
+import mobilecloud.api.receiver.Receiver;
 import mobilecloud.utils.AdvancedObjectInputStreamWrapper;
 import mobilecloud.utils.AdvancedObjectOutputStreamWrapper;
 
@@ -48,7 +51,15 @@ public class ClientTest {
             os.get().writeObject(request);
             os.get().flush();
         }
+    }
+    
+    public static class TestResponseReceiver implements Receiver<Response> {
 
+        @Override
+        public Response receive(AdvancedObjectInputStreamWrapper is, AdvancedObjectOutputStreamWrapper os)
+                throws Exception {
+            return (Response) is.get().readObject();
+        }
         
     }
     
@@ -66,13 +77,23 @@ public class ClientTest {
         
         client = new Client(builder, 100, 2000);
         client.registerDeliverer(TestRequest.class.getName(), new TestRequestDeliverer());
+        client.registerReceiver(TestResponse.class.getName(), new TestResponseReceiver());
+    }
+    
+    private InputStream createInputStream(Response resp) throws IOException {
+        ByteArrayOutputStream o = new ByteArrayOutputStream();
+        ObjectOutputStream os = new ObjectOutputStream(o);
+        os.writeObject(resp.getClass().getName());
+        os.writeObject(resp);
+        byte[] data = o.toByteArray();
+        return new ByteArrayInputStream(data);
     }
 
     @Test
     public void testRequestSuccess() throws Exception {
         Request req = new TestRequest().setIp("192.168.0.1").setPort(80);
         Response resp = new TestResponse().setSuccess(true);
-        InputStream is = IOUtils.toInputStream(resp);
+        InputStream is = createInputStream(resp);
         OutputStream os = new ByteArrayOutputStream();
         Mockito.when(socket.getInputStream()).thenReturn(is);
         Mockito.when(socket.getOutputStream()).thenReturn(os);
@@ -85,7 +106,7 @@ public class ClientTest {
     public void testRequestFails() throws Exception {
         Request req = new TestRequest().setIp("192.168.0.1").setPort(80);
         Response resp = new TestResponse().setSuccess(false).setThrowable(new NullPointerException());
-        InputStream is = IOUtils.toInputStream(resp);
+        InputStream is = createInputStream(resp);
         OutputStream os = new ByteArrayOutputStream();
         Mockito.when(socket.getInputStream()).thenReturn(is);
         Mockito.when(socket.getOutputStream()).thenReturn(os);
@@ -108,7 +129,7 @@ public class ClientTest {
         Mockito.when(socket.getInputStream()).thenAnswer(new Answer<InputStream>() {
             @Override
             public InputStream answer(InvocationOnMock invocation) throws Throwable {
-                return IOUtils.toInputStream(resp);
+                return createInputStream(resp);
             }
         });
         Mockito.when(socket.getOutputStream()).thenAnswer(new Answer<OutputStream>() {
