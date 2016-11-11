@@ -29,6 +29,7 @@ import mobilecloud.engine.Engine;
 import mobilecloud.engine.ExecutableProvider;
 import mobilecloud.engine.RemoteExecutionFailedException;
 import mobilecloud.engine.host.Host;
+import mobilecloud.engine.host.monitor.HostMetricUpdatedListener;
 import mobilecloud.engine.host.monitor.HostMonitor;
 import mobilecloud.engine.host.monitor.HostStatusChangeListener;
 import mobilecloud.engine.schedular.Schedular;
@@ -232,6 +233,8 @@ public class EngineTest {
 
         HostMonitor monitor = Mockito.mock(HostMonitor.class);
         Mockito.when(monitor.withHostStatusChangeListener(Matchers.any(HostStatusChangeListener.class)))
+                .thenCallRealMethod();
+        Mockito.when(monitor.withMetricUpdatedListener(Matchers.any(HostMetricUpdatedListener.class)))
                 .thenCallRealMethod();
         
         Engine.localInit(context);

@@ -3,7 +3,7 @@ package mobilecloud.engine.host.monitor;
 import mobilecloud.engine.host.Host;
 
 /**
- * A listener which listens to the host status
+ * A listener which listens to the host status changed event
  */
 public interface HostStatusChangeListener {
     

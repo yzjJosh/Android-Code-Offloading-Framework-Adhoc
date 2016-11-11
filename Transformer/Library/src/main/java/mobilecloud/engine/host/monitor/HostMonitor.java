@@ -8,6 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import mobilecloud.api.request.MonitorHostRequest;
 import mobilecloud.api.request.Request;
+import mobilecloud.api.response.MonitorHostResponse;
 import mobilecloud.api.response.Response;
 import mobilecloud.client.Client;
 import mobilecloud.engine.Config;
@@ -32,7 +33,8 @@ public class HostMonitor {
     private long checkHostInterval = Config.HOST_MONITOR_CHECK_HOST_INTERVAL;
     private long retryInterval = Config.HOST_MONITOR_RETRY_INTERVAL;
     private int retryTimes = Config.HOST_MONITOR_RETRY_TIMES;
-    private HostStatusChangeListener listener;
+    private HostStatusChangeListener hostStatusChangedListener;
+    private HostMetricUpdatedListener hostMetricUpdatedListener;
     private boolean hasStarted;
     
     public HostMonitor(HostProvider provider, Client client) {
@@ -44,12 +46,22 @@ public class HostMonitor {
     }
     
     /**
-     * Add listener to this monitor
-     * @param listener the listener to add
+     * Add hostStatusChangedListener to this monitor
+     * @param hostStatusChangedListener the hostStatusChangedListener to add
      * @return this monitor
      */
     public HostMonitor withHostStatusChangeListener(HostStatusChangeListener listener) {
-        this.listener = listener;
+        this.hostStatusChangedListener = listener;
+        return this;
+    }
+    
+    /**
+     * Add hostMetricUpdatedListener to this monitor
+     * @param listener the hostMetricUpdatedListener
+     * @return this monitor
+     */
+    public HostMonitor withMetricUpdatedListener(HostMetricUpdatedListener listener) {
+        this.hostMetricUpdatedListener = listener;
         return this;
     }
     
@@ -188,16 +200,19 @@ public class HostMonitor {
                     } else {
                         if (isAlive == null || !isAlive) {
                             isAlive = true;
-                            if (listener != null) {
-                                listener.onHostStatusChange(host, isAlive);
+                            if (hostStatusChangedListener != null) {
+                                hostStatusChangedListener.onHostStatusChange(host, isAlive);
                             }
+                        }
+                        if(hostMetricUpdatedListener != null) {
+                            hostMetricUpdatedListener.onHostMetricUpdated(host, ((MonitorHostResponse)resp).getMetric());
                         }
                     }
                 } catch (Throwable e) {
                     if (isAlive == null || isAlive) {
                         isAlive = false;
-                        if (listener != null) {
-                            listener.onHostStatusChange(host, isAlive);
+                        if (hostStatusChangedListener != null) {
+                            hostStatusChangedListener.onHostStatusChange(host, isAlive);
                         }
                     }
                 }
@@ -214,8 +229,8 @@ public class HostMonitor {
                 // becomes unavailable.
                 if (isAlive == null || isAlive) {
                     isAlive = false;
-                    if (listener != null) {
-                        listener.onHostStatusChange(host, isAlive);
+                    if (hostStatusChangedListener != null) {
+                        hostStatusChangedListener.onHostStatusChange(host, isAlive);
                     }
                 }
             }

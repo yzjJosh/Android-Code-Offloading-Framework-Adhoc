@@ -2,6 +2,7 @@ package mobilecloud.engine.schedular;
 
 import mobilecloud.engine.Config;
 import mobilecloud.engine.host.Host;
+import mobilecloud.metric.Metric;
 
 /**
  * Schedular is responsible to schedule which host to execute a task
@@ -57,6 +58,13 @@ public abstract class Schedular {
      *            the host to remove
      */
     public abstract void removeHost(Host host);
+    
+    /**
+     * Update the metric of a host
+     * @param host the host to be updated
+     * @param metric its new metric
+     */
+    public abstract void updateMetric(Host host, Metric metric);
 
     /**
      * Get the global schedular

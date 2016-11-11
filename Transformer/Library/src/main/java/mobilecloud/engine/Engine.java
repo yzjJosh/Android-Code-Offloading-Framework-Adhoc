@@ -13,10 +13,12 @@ import mobilecloud.api.response.RemoteInvocationResponse;
 import mobilecloud.api.response.Response;
 import mobilecloud.client.Client;
 import mobilecloud.engine.host.Host;
+import mobilecloud.engine.host.monitor.HostMetricUpdatedListener;
 import mobilecloud.engine.host.monitor.HostMonitor;
 import mobilecloud.engine.host.monitor.HostStatusChangeListener;
 import mobilecloud.engine.schedular.Schedular;
 import mobilecloud.lib.listener.RemoteExecutionListener;
+import mobilecloud.metric.Metric;
 import mobilecloud.objs.ObjectMigrator;
 import mobilecloud.objs.Token;
 import mobilecloud.server.DuplicateExecutableException;
@@ -127,7 +129,11 @@ public class Engine {
                 } else {
                     Engine.this.schedular.removeHost(host);
                 }
-                
+            }
+        }).withMetricUpdatedListener(new HostMetricUpdatedListener() {
+            @Override
+            public void onHostMetricUpdated(Host host, Metric metric) {
+                Engine.this.schedular.updateMetric(host, metric);
             }
         }).start();
         

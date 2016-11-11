@@ -49,7 +49,7 @@ public class Server {
         this.registerHandler(RemoteInvocationRequest.class.getName(), new RemoteInvocationHandler(executableLoader));
         this.registerHandler(UploadApplicationExecutableRequest.class.getName(),
                 new UploadApplicationExecutableHandler(executableLoader));
-        this.registerHandler(MonitorHostRequest.class.getName(), new MonitorHostRequestHandler());
+        this.registerHandler(MonitorHostRequest.class.getName(), new MonitorHostRequestHandler(metricGenerator));
 
         this.registerReceiver(RemoteInvocationRequest.class.getName(),
                 new RemoteInvocationRequestReceiver(executableLoader, metricGenerator));

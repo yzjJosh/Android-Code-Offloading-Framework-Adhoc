@@ -4,6 +4,7 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 import mobilecloud.engine.host.Host;
+import mobilecloud.metric.Metric;
 
 /**
  * A schedular which schedules hosts in a round-robin manner
@@ -46,6 +47,11 @@ public class RoundRobinSchedular extends Schedular{
     @Override
     public synchronized void removeHost(Host host) {
         hosts.remove(host);
+    }
+
+    @Override
+    public void updateMetric(Host host, Metric metric) {
+        // Do nothing with metric in round robin schedular
     }
 
 }
