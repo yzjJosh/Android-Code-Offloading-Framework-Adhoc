@@ -14,7 +14,10 @@ import mobilecloud.api.request.Request;
 import mobilecloud.api.request.UploadApplicationExecutableRequest;
 import mobilecloud.api.response.IllegalRequestResponse;
 import mobilecloud.api.response.InternalServerErrorResponse;
+import mobilecloud.api.response.MonitorHostResponse;
+import mobilecloud.api.response.RemoteInvocationResponse;
 import mobilecloud.api.response.Response;
+import mobilecloud.api.response.UploadApplicationExecutableResponse;
 import mobilecloud.engine.Engine;
 import mobilecloud.metric.Metric;
 import mobilecloud.metric.MetricGenerator;
@@ -65,11 +68,11 @@ public class Server {
                 new UploadApplicationExecutableRequestReceiver(executableLoader, metricGenerator));
         this.registerReceiver(MonitorHostRequest.class.getName(), new MonitorHostRequestReceiver(metricGenerator));
 
-        this.registerDeliverer(IllegalRequestResponseDeliverer.class.getName(), new IllegalRequestResponseDeliverer(metricGenerator));
-        this.registerDeliverer(InternalServerErrorResponseDeliverer.class.getName(), new InternalServerErrorResponseDeliverer(metricGenerator));
-        this.registerDeliverer(MonitorHostResponseDeliverer.class.getName(), new MonitorHostResponseDeliverer(metricGenerator));
-        this.registerDeliverer(RemoteInvocationResponseDeliverer.class.getName(), new RemoteInvocationResponseDeliverer(metricGenerator));
-        this.registerDeliverer(UploadApplicationExecutableResponseDeliverer.class.getName(), new UploadApplicationExecutableResponseDeliverer(metricGenerator));
+        this.registerDeliverer(IllegalRequestResponse.class.getName(), new IllegalRequestResponseDeliverer(metricGenerator));
+        this.registerDeliverer(InternalServerErrorResponse.class.getName(), new InternalServerErrorResponseDeliverer(metricGenerator));
+        this.registerDeliverer(MonitorHostResponse.class.getName(), new MonitorHostResponseDeliverer(metricGenerator));
+        this.registerDeliverer(RemoteInvocationResponse.class.getName(), new RemoteInvocationResponseDeliverer(metricGenerator));
+        this.registerDeliverer(UploadApplicationExecutableResponse.class.getName(), new UploadApplicationExecutableResponseDeliverer(metricGenerator));
     }
     
     /**
@@ -166,8 +169,9 @@ public class Server {
         }
         
         out.get().writeObject(resp.getClass().getName());
-        deliverer.deliver(resp, in, out);
+        out.get().flush();
         
+        deliverer.deliver(resp, in, out);
         if(listener != null) {
             listener.onResponseSent(req, resp);
         }
