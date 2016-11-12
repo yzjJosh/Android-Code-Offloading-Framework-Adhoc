@@ -1,10 +1,11 @@
 package mobilecloud.engine.schedular;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.TreeSet;
 import mobilecloud.engine.host.Host;
 import mobilecloud.metric.Metric;
+import mobilecloud.utils.RandomizedSet;
 
 public class CPULoadSchedular extends Schedular {
 	private static class HostWrapper implements Comparable<HostWrapper> {
@@ -50,14 +51,27 @@ public class CPULoadSchedular extends Schedular {
 		}
 	}
 
-	private TreeSet<HostWrapper> queue = new TreeSet<>();
+	private RandomizedSet<HostWrapper> set = new RandomizedSet<>();
 	private Map<Host, HostWrapper> map = new HashMap<>();
 
 	@Override
 	public synchronized Host schedule() {
 		if (!haveAvailable())
 			return null;
-		return queue.first().host;
+		
+		List<HostWrapper> res = set.sample(Config.CPU_LOADER_SCHEDULAR_SAMPLE_SIZE);
+		HostWrapper wrapper = null;
+		for(HostWrapper hostWrapper : res) {
+			if(wrapper!=null) {
+				if(hostWrapper.compareTo(wrapper) < 0) {
+					wrapper = hostWrapper;
+				}
+			} else {
+				wrapper = hostWrapper;
+			}
+			
+		}
+		return wrapper.host;
 	}
 
 	@Override
@@ -67,7 +81,7 @@ public class CPULoadSchedular extends Schedular {
 
 	@Override
 	public synchronized int availableNum() {
-		return queue.size();
+		return set.size();
 	}
 
 	@Override
@@ -80,7 +94,7 @@ public class CPULoadSchedular extends Schedular {
 		if (map.containsKey(host))
 			return;
 		HostWrapper hostWrapper = new HostWrapper(host, null);
-		queue.add(hostWrapper);
+		set.add(hostWrapper);
 		map.put(host, hostWrapper);
 	}
 
@@ -89,7 +103,7 @@ public class CPULoadSchedular extends Schedular {
 		if (!map.containsKey(host))
 			return;
 		HostWrapper hostWrapper = map.remove(host);
-		queue.remove(hostWrapper);
+		set.remove(hostWrapper);
 	}
 
 	@Override
@@ -97,12 +111,12 @@ public class CPULoadSchedular extends Schedular {
 		HostWrapper hostWrapper = map.get(host);
 		if (hostWrapper == null) {
 			hostWrapper = new HostWrapper(host, metric);
-			queue.add(hostWrapper);
+			set.add(hostWrapper);
 			map.put(host, hostWrapper);
 		} else {
-			queue.remove(hostWrapper);
+			set.remove(hostWrapper);
 			hostWrapper.metric = metric;
-			queue.add(hostWrapper);
+			set.add(hostWrapper);
 		}
 	}
 }
