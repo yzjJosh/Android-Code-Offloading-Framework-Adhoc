@@ -12,13 +12,17 @@ import mobilecloud.api.request.UploadApplicationExecutableRequest;
 import mobilecloud.api.response.RemoteInvocationResponse;
 import mobilecloud.api.response.Response;
 import mobilecloud.client.Client;
+import mobilecloud.client.LocalClient;
 import mobilecloud.engine.host.Host;
+import mobilecloud.engine.host.LocalHost;
 import mobilecloud.engine.host.monitor.HostMetricUpdatedListener;
 import mobilecloud.engine.host.monitor.HostMonitor;
 import mobilecloud.engine.host.monitor.HostStatusChangeListener;
+import mobilecloud.engine.host.provider.LocalHostProvider;
 import mobilecloud.engine.schedular.Schedular;
 import mobilecloud.lib.listener.RemoteExecutionListener;
 import mobilecloud.metric.Metric;
+import mobilecloud.metric.MetricGenerator;
 import mobilecloud.objs.ObjectMigrator;
 import mobilecloud.objs.Token;
 import mobilecloud.server.DuplicateExecutableException;
@@ -69,35 +73,12 @@ public class Engine {
         return onCloud;
     }
 
-
-    /**
-     * Indicate current host
-     */
-    private static class LocalHost extends Host {
-        private static final long serialVersionUID = 1L;
-
-        public LocalHost() {
-            super("localHost", 0);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (o == null || o.getClass() != LocalHost.class) {
-                return false;
-            } else {
-                LocalHost that = (LocalHost) o;
-                Host me = new Host(ip, port);
-                Host he = new Host(that.ip, that.port);
-                return me.equals(he);
-            }
-        }
-    }
-
     private final Context ctx;
     private final Client client;
     private final Schedular schedular;
     private final ExecutableProvider executableProvider;
     private final HostMonitor hostMonitor;
+    private final HostMonitor localHostMonitor;
     
     public Engine() {
         if(!isOnCloud()) {
@@ -108,6 +89,7 @@ public class Engine {
         this.schedular = null;
         this.executableProvider = null;
         this.hostMonitor = null;
+        this.localHostMonitor = null;
     }
 
     public Engine(Context context, Client client, Schedular schedular, ExecutableProvider executableProvider, HostMonitor hostMonitor) {
@@ -119,9 +101,10 @@ public class Engine {
         this.client = client;
         this.executableProvider = executableProvider;
         this.hostMonitor = hostMonitor;
+        this.localHostMonitor = new HostMonitor(new LocalHostProvider(), new LocalClient(MetricGenerator.getInstance()));
 
         // Start running host monitor
-        this.hostMonitor.withHostStatusChangeListener(new HostStatusChangeListener() {
+        HostStatusChangeListener hostStatusChangedListener = new HostStatusChangeListener() {
             @Override
             public void onHostStatusChange(Host host, boolean isAlive) {
                 if(isAlive) {
@@ -130,16 +113,20 @@ public class Engine {
                     Engine.this.schedular.removeHost(host);
                 }
             }
-        }).withMetricUpdatedListener(new HostMetricUpdatedListener() {
+        };
+        
+        
+        HostMetricUpdatedListener hostMetricUpdatedListener = new HostMetricUpdatedListener() {
             @Override
             public void onHostMetricUpdated(Host host, Metric metric) {
                 Engine.this.schedular.updateMetric(host, metric);
             }
-        }).start();
+        };
         
-        // Add local host to this schedular, so that schedular can schedule
-        // local host to invoke a method.
-        this.schedular.addHost(new LocalHost());
+        this.hostMonitor.withHostStatusChangeListener(hostStatusChangedListener)
+                .withMetricUpdatedListener(hostMetricUpdatedListener).start();
+        this.localHostMonitor.withHostStatusChangeListener(hostStatusChangedListener)
+                .withMetricUpdatedListener(hostMetricUpdatedListener).start();
     }
 
     /**

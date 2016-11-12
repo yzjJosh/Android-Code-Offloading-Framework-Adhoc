@@ -25,11 +25,14 @@ private final MetricGenerator metricGenerator;
     public void deliver(T obj, AdvancedObjectInputStreamWrapper is, AdvancedObjectOutputStreamWrapper os)
             throws Exception {
         // Write request
-        os.get().resetStat();
-        os.get().writeObject(obj);
-        os.get().flush();
-        if(metricGenerator != null) {
-            metricGenerator.reportWrite(os.get().getBytesWritten());
+        os.resetStat();
+        try {
+            os.get().writeObject(obj);
+            os.get().flush();
+        } finally {
+            if (metricGenerator != null) {
+                metricGenerator.reportWrite(os.get().getBytesWritten());
+            }
         }
     }
 

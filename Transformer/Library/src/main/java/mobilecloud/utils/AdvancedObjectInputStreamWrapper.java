@@ -10,8 +10,18 @@ import java.io.InputStream;
  */
 public class AdvancedObjectInputStreamWrapper extends ObjectInputStreamWrapper {
 
+    private boolean reset;
+    
     public AdvancedObjectInputStreamWrapper(InputStream in) {
         super(in);
+        this.reset = false;
+    }
+    
+    /**
+     * Reset the statistic information of inner input stream
+     */
+    public void resetStat() {
+        this.reset = true;
     }
     
     @Override
@@ -19,7 +29,12 @@ public class AdvancedObjectInputStreamWrapper extends ObjectInputStreamWrapper {
         if(objIn == null) {
             objIn = new AdvancedObjectInputStream(in);
         }
-        return (AdvancedObjectInputStream) objIn;
+        AdvancedObjectInputStream res = (AdvancedObjectInputStream) objIn;
+        if(reset) {
+            res.resetStat();
+            reset = false;
+        }
+        return res;
     }
 
 }

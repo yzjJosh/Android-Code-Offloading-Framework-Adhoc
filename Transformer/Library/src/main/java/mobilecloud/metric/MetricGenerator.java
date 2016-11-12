@@ -2,22 +2,22 @@ package mobilecloud.metric;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.util.LinkedList;
 import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class MetricGenerator {
     
     private static final long METRIC_TIME_PERIOD = 3000;
     private static MetricGenerator instance;
     
-    private ConcurrentLinkedQueue<StampedInteger> requestQueue;
-    private ConcurrentLinkedQueue<StampedInteger> readQueue;
-    private ConcurrentLinkedQueue<StampedInteger> writeQueue;
+    private Queue<StampedInteger> requestQueue;
+    private Queue<StampedInteger> readQueue;
+    private Queue<StampedInteger> writeQueue;
     
     public MetricGenerator() {
-        this.readQueue = new ConcurrentLinkedQueue<>();
-        this.writeQueue = new ConcurrentLinkedQueue<>();
-        this.requestQueue = new ConcurrentLinkedQueue<>();
+        this.readQueue = new LinkedList<>();
+        this.writeQueue = new LinkedList<>();
+        this.requestQueue = new LinkedList<>();
     }
     
     /**
@@ -26,8 +26,10 @@ public class MetricGenerator {
      * @return this generator for method chaining
      */
     public MetricGenerator reportRead(int bytes) {
-        removeOutDatedRecords(readQueue);
-        readQueue.add(new StampedInteger(System.currentTimeMillis(), bytes));
+        synchronized(readQueue) {
+            removeOutDatedRecords(readQueue);
+            readQueue.add(new StampedInteger(System.currentTimeMillis(), bytes));
+        }
         return this;
     }
     
@@ -44,8 +46,10 @@ public class MetricGenerator {
      * @return this generator for method chaining
      */
     public MetricGenerator reportWrite(int bytes) {
-        removeOutDatedRecords(writeQueue);
-        writeQueue.add(new StampedInteger(System.currentTimeMillis(), bytes));
+        synchronized(writeQueue) {
+            removeOutDatedRecords(writeQueue);
+            writeQueue.add(new StampedInteger(System.currentTimeMillis(), bytes));
+        }
         return this;
     }
     
@@ -54,34 +58,42 @@ public class MetricGenerator {
      * @return this generator for method chaining
      */
     public MetricGenerator reportRequest() {
-        removeOutDatedRecords(requestQueue);
-        requestQueue.add(new StampedInteger(System.currentTimeMillis(), 1));
+        synchronized(requestQueue) {
+            removeOutDatedRecords(requestQueue);
+            requestQueue.add(new StampedInteger(System.currentTimeMillis(), 1));
+        }
         return this;
     }
     
     private int getReadBPS() {
-        removeOutDatedRecords(readQueue);
         int bytes = 0;
-        for(StampedInteger i: readQueue) {
-            bytes += i.val;
+        synchronized(readQueue) {
+            removeOutDatedRecords(readQueue);
+            for(StampedInteger i: readQueue) {
+                bytes += i.val;
+            }
         }
         return (int) (bytes/((double)METRIC_TIME_PERIOD/1000));
     }
     
     private int getWriteBPS() {
-        removeOutDatedRecords(writeQueue);
         int bytes = 0;
-        for(StampedInteger i: writeQueue) {
-            bytes += i.val;
+        synchronized (writeQueue) {
+            removeOutDatedRecords(writeQueue);
+            for (StampedInteger i : writeQueue) {
+                bytes += i.val;
+            }
         }
-        return (int) (bytes/((double)METRIC_TIME_PERIOD/1000));
+        return (int) (bytes / ((double) METRIC_TIME_PERIOD / 1000));
     }
     
     private double getRequestPerSecond() {
-        removeOutDatedRecords(requestQueue);
         int requests  = 0;
-        for(StampedInteger i: requestQueue) {
-            requests += i.val;
+        synchronized(requestQueue) {
+            removeOutDatedRecords(requestQueue);
+            for(StampedInteger i: requestQueue) {
+                requests += i.val;
+            }
         }
         return (double) requests/((double)METRIC_TIME_PERIOD/1000);
     }

@@ -24,33 +24,32 @@ public class RemoteInvocationRequestReceiver implements Receiver<Request> {
 
     @Override
     public Request receive(AdvancedObjectInputStreamWrapper is, AdvancedObjectOutputStreamWrapper os) throws Exception {
-        String appId = (String) is.get().readObject();
-        ClassLoader cl = null;
+        is.resetStat();
+        os.resetStat();
+        
         try {
-            cl = exeLoader.loadExecutable(appId);
-            os.get().resetStat();
-            os.get().writeBoolean(true);
-            os.get().flush();
-            if(metricGenerator != null) {
+            String appId = (String) is.get().readObject();
+            ClassLoader cl = null;
+            try {
+                cl = exeLoader.loadExecutable(appId);
+                os.get().writeBoolean(true);
+                os.get().flush();
+            } catch (NoApplicationExecutableException e) {
+                os.get().writeBoolean(false);
+                os.get().flush();
+                throw e;
+            }
+            is.get().setClassLoader(cl);
+            RemoteInvocationRequest res = (RemoteInvocationRequest) is.get().readObject();
+
+            res.setApplicationId(appId);
+            return res;
+        } finally {
+            if (metricGenerator != null) {
+                metricGenerator.reportRead(is.get().getBytesRead());
                 metricGenerator.reportWrite(os.get().getBytesWritten());
             }
-        } catch (NoApplicationExecutableException e) {
-            os.get().resetStat();
-            os.get().writeBoolean(false);
-            os.get().flush();
-            if(metricGenerator != null) {
-                metricGenerator.reportWrite(os.get().getBytesWritten());
-            }
-            throw e;
         }
-        is.get().setClassLoader(cl);
-        is.get().resetStat();
-        RemoteInvocationRequest res = (RemoteInvocationRequest) is.get().readObject();
-        if(metricGenerator != null) {
-            metricGenerator.reportRead(is.get().getBytesRead());
-        }
-        res.setApplicationId(appId);
-        return res;
     }
 
 

@@ -28,34 +28,32 @@ public class RemoteInvocationRequestDeliverer implements Deliverer<Request> {
         
         RemoteInvocationRequest req = (RemoteInvocationRequest) request;
         
-        //write application id
-        os.get().resetStat();
-        os.get().writeObject(req.getApplicationId());
-        os.get().flush();
-        if(metricGenerator != null) {
-            metricGenerator.reportWrite(os.get().getBytesWritten());
-        }
+        os.resetStat();
+        is.resetStat();
         
-        //Wait for OK
-        is.get().resetStat();
-        boolean OK = is.get().readBoolean();
-        if(metricGenerator != null) {
-            metricGenerator.reportRead(is.get().getBytesRead());
-        }
-        if(!OK) {
-            //If does not have executable, throw exception
-            throw new NoApplicationExecutableException();
-        }
-        
-        // No need to resend app id
-        req.setApplicationId(null);
-        
-        // Deliver request
-        os.get().resetStat();
-        os.get().writeObject(req);
-        os.get().flush();
-        if(metricGenerator != null) {
-            metricGenerator.reportWrite(os.get().getBytesWritten());
+        try {
+            // write application id
+            os.get().writeObject(req.getApplicationId());
+            os.get().flush();
+
+            // Wait for OK
+            boolean OK = is.get().readBoolean();
+            if (!OK) {
+                // If does not have executable, throw exception
+                throw new NoApplicationExecutableException();
+            }
+
+            // No need to resend app id
+            req.setApplicationId(null);
+
+            // Deliver request
+            os.get().writeObject(req);
+            os.get().flush();
+        } finally {
+            if (metricGenerator != null) {
+                metricGenerator.reportWrite(os.get().getBytesWritten());
+                metricGenerator.reportRead(is.get().getBytesRead());
+            }
         }
     }
 

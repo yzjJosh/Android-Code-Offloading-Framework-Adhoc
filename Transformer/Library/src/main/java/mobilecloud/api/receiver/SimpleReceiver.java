@@ -24,12 +24,14 @@ public class SimpleReceiver<T> implements Receiver<T> {
     @SuppressWarnings("unchecked")
     @Override
     public T receive(AdvancedObjectInputStreamWrapper is, AdvancedObjectOutputStreamWrapper os) throws Exception {
-        is.get().resetStat();
-        T res = (T) is.get().readObject();
-        if(metricGenerator != null) {
-            metricGenerator.reportRead(is.get().getBytesRead());
+        is.resetStat();
+        try {
+            return (T) is.get().readObject();
+        } finally {
+            if (metricGenerator != null) {
+                metricGenerator.reportRead(is.get().getBytesRead());
+            }
         }
-        return res;
     }
 
 }

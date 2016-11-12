@@ -10,8 +10,18 @@ import java.io.OutputStream;
  */
 public class AdvancedObjectOutputStreamWrapper extends ObjectOutputStreamWrapper {
 
+    private boolean reset;
+    
     public AdvancedObjectOutputStreamWrapper(OutputStream os) {
         super(os);
+        this.reset = false;
+    }
+    
+    /**
+     * Reset the statistics of the inner output stream
+     */
+    public void resetStat() {
+        this.reset = true;
     }
     
     @Override
@@ -19,7 +29,12 @@ public class AdvancedObjectOutputStreamWrapper extends ObjectOutputStreamWrapper
         if(objOs == null) {
             objOs = new AdvancedObjectOutputStream(os);
         }
-        return (AdvancedObjectOutputStream) objOs;
+        AdvancedObjectOutputStream res = (AdvancedObjectOutputStream) objOs;
+        if(reset) {
+            res.resetStat();
+            reset = false;
+        }
+        return res;
     }
 
 }

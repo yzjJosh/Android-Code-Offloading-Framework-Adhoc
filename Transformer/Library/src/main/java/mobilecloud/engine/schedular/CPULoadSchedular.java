@@ -1,6 +1,5 @@
 package mobilecloud.engine.schedular;
 
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeSet;
@@ -8,7 +7,7 @@ import mobilecloud.engine.host.Host;
 import mobilecloud.metric.Metric;
 
 public class CPULoadSchedular extends Schedular {
-	private static class HostWrapper implements Comparator<HostWrapper> {
+	private static class HostWrapper implements Comparable<HostWrapper> {
 		public Host host;
 		public Metric metric;
 
@@ -18,7 +17,8 @@ public class CPULoadSchedular extends Schedular {
 		}
 
 		@Override
-		public int compare(HostWrapper a, HostWrapper b) {
+		public int compareTo(HostWrapper b) {
+		    HostWrapper a = this;
 			Metric m1 = a.metric;
 			Metric m2 = b.metric;
 			if (m1 == null && m2 == null) {
@@ -43,35 +43,40 @@ public class CPULoadSchedular extends Schedular {
 				}
 			}
 		}
+		
+		@Override
+		public String toString() {
+		    return host + " | " + metric;
+		}
 	}
 
-	TreeSet<HostWrapper> queue = new TreeSet<>();
-	Map<Host, HostWrapper> map = new HashMap<>();
+	private TreeSet<HostWrapper> queue = new TreeSet<>();
+	private Map<Host, HostWrapper> map = new HashMap<>();
 
 	@Override
-	public Host schedule() {
+	public synchronized Host schedule() {
 		if (!haveAvailable())
 			return null;
 		return queue.first().host;
 	}
 
 	@Override
-	public Host trySchedule() {
+	public synchronized Host trySchedule() {
 		return schedule();
 	}
 
 	@Override
-	public int availableNum() {
+	public synchronized int availableNum() {
 		return queue.size();
 	}
 
 	@Override
-	public boolean haveAvailable() {
+	public synchronized boolean haveAvailable() {
 		return availableNum() != 0;
 	}
 
 	@Override
-	public void addHost(Host host) {
+	public synchronized void addHost(Host host) {
 		if (map.containsKey(host))
 			return;
 		HostWrapper hostWrapper = new HostWrapper(host, null);
@@ -80,7 +85,7 @@ public class CPULoadSchedular extends Schedular {
 	}
 
 	@Override
-	public void removeHost(Host host) {
+	public synchronized void removeHost(Host host) {
 		if (!map.containsKey(host))
 			return;
 		HostWrapper hostWrapper = map.remove(host);
@@ -88,7 +93,7 @@ public class CPULoadSchedular extends Schedular {
 	}
 
 	@Override
-	public void updateMetric(Host host, Metric metric) {
+	public synchronized void updateMetric(Host host, Metric metric) {
 		HostWrapper hostWrapper = map.get(host);
 		if (hostWrapper == null) {
 			hostWrapper = new HostWrapper(host, metric);
