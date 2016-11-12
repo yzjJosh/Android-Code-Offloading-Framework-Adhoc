@@ -59,7 +59,7 @@ public class CPULoadSchedular extends Schedular {
 		if (!haveAvailable())
 			return null;
 		
-		List<HostWrapper> res = set.sample(Config.CPU_LOADER_SCHEDULAR_SAMPLE_SIZE);
+		List<HostWrapper> res = set.sample(Config.CPU_LOAD_SCHEDULAR_SAMPLE_SIZE);
 		HostWrapper wrapper = null;
 		for(HostWrapper hostWrapper : res) {
 			if(wrapper!=null) {

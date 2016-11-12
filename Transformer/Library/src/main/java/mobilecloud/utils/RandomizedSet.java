@@ -1,6 +1,7 @@
 package mobilecloud.utils;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,14 +37,14 @@ public class RandomizedSet<T> {
 		} else {
 			List<T> res = new ArrayList<>(n);
 			for(int i=0; i<list.size(); i++) {
-				int index = new Random().nextInt(i+1);
-				if(index < res.size()) {
-					T val = res.get(index);
-					res.set(index, list.get(i));
-					if(i < res.size()) {
-						res.set(i, val);
-					}
-				}
+			    if(i < n) {
+			        res.add(list.get(i));
+			    } else {
+    				int index = new Random().nextInt(i+1);
+    				if(index < n) {
+    					res.set(index, list.get(i));
+    				}
+			    }
 			}
 			return res;
 		}
