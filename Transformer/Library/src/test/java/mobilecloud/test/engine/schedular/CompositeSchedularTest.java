@@ -54,6 +54,22 @@ public class CompositeSchedularTest {
 		}
 	}
 	
+	@Test
+	public void compositeSchedularTest3() {
+		System.out.println("Test3");
+		for(int i=0; i<10000; i++) {
+			Host host = schedular.schedule();
+			cpuLoad[host.port] += 0.05;
+			count[host.port]++;
+			if(i%100==0) {
+				for(int j=0; j<hostNum; j++) {
+					schedular.updateMetric(host, new Metric(0, 0, cpuLoad[j], 0));
+				}
+			}	
+		}
+	}
+
+	
 	@After
 	public void tearDown() {
 		System.out.println(Arrays.toString(count));
