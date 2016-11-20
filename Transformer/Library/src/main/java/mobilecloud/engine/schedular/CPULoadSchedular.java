@@ -3,6 +3,8 @@ package mobilecloud.engine.schedular;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
+
 import mobilecloud.engine.host.Host;
 import mobilecloud.metric.Metric;
 import mobilecloud.utils.RandomizedSet;
@@ -23,7 +25,7 @@ public class CPULoadSchedular extends Schedular {
 			Metric m1 = a.metric;
 			Metric m2 = b.metric;
 			if (m1 == null && m2 == null) {
-				return -1;
+				return 0;
 			} else if (m1 == null) {
 				return 1;
 			} else if (m2 == null) {
@@ -65,6 +67,9 @@ public class CPULoadSchedular extends Schedular {
 			if(wrapper!=null) {
 				if(hostWrapper.compareTo(wrapper) < 0) {
 					wrapper = hostWrapper;
+				} else if(hostWrapper.compareTo(wrapper) == 0) {
+					int rand = new Random().nextInt(2);
+					wrapper = rand == 0? wrapper: hostWrapper;
 				}
 			} else {
 				wrapper = hostWrapper;
