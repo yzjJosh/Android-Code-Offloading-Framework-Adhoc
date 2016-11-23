@@ -1,9 +1,5 @@
 package example.nqueensolver;
 
-/**
- * Created by LiviaZhao on 11/23/16.
- */
-
 import java.util.List;
 import java.util.ArrayList;
 import java.util.concurrent.Callable;
