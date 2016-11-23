@@ -1,5 +1,0 @@
-Chess
-
-Play chess, chess 960, practice mate positions, solve puzzles, play online (FICS).
-One of the most versatile free chess apps without ads.
-Open sourced.
