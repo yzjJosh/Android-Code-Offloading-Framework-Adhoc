@@ -8,9 +8,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import mobilecloud.lib.Remote;
+
 public class NQueenSolver {
 
-    public int totalNQueens(int n) throws ExecutionException, InterruptedException {
+    int totalNQueens(int n) throws ExecutionException, InterruptedException {
         int result = 0;
         if(n<=0) return result;
 
@@ -30,19 +32,20 @@ public class NQueenSolver {
 
     private class worker implements Callable<Integer> {
 
-        public boolean[][] board;
-        public boolean[] occupied;
-        public int i;
-        public int n;
-        public int nums = 0;
+        private boolean[][] board;
+        private boolean[] occupied;
+        private int i;
+        private int n;
+        private int nums = 0;
 
-        public worker(int i, int n) {
+        worker(int i, int n) {
             this.board = new boolean[n][n];
             this.occupied = new boolean[n];
             this.i = i;
             this.n = n;
         }
 
+        @Remote
         public Integer call() {
             occupied[i] = true;
             board[0][i] = true;
@@ -50,7 +53,7 @@ public class NQueenSolver {
             return nums;
         }
 
-        public void helper(boolean[][] board, boolean[] occupied, int row, int n){
+        private void helper(boolean[][] board, boolean[] occupied, int row, int n){
             if(row==n){
                 nums++;
                 return;
@@ -66,7 +69,7 @@ public class NQueenSolver {
             }
         }
 
-        public boolean isValid(boolean[][] board, boolean[] occupied, int row, int col){
+        private boolean isValid(boolean[][] board, boolean[] occupied, int row, int col){
 
             if(occupied[col]) return false;
 

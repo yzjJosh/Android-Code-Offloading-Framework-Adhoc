@@ -43,8 +43,7 @@
         android:visibility="invisible"
         android:layout_marginTop="10dp"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textColor="@android:color/darker_gray"/>
+        android:layout_height="wrap_content"/>
 
 
 </LinearLayout>

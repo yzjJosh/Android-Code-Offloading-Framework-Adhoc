@@ -9,7 +9,6 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 public class MainActivity extends AppCompatActivity {
@@ -49,15 +48,15 @@ public class MainActivity extends AppCompatActivity {
         new SolveTask().execute(dim);
     }
 
-    private class SolveTask extends AsyncTask<Integer, Void, List<List<Integer>>> {
+    private class SolveTask extends AsyncTask<Integer, Void, Integer> {
 
         private int dim;
         private long time;
 
         @Override
-        protected List<List<Integer>> doInBackground(Integer... args) {
+        protected Integer doInBackground(Integer... args) {
             this.dim = args[0];
-            List<List<Integer>> res = null;
+            int res = 0;
             long start = System.currentTimeMillis();
             try {
                 res = solver.totalNQueens(dim);
@@ -69,8 +68,8 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @Override
-        protected void onPostExecute(List<List<Integer>> res) {
-            String message = "Found " + res.size() + " solutions for " + dim + " queen problem, spend " + time + "ms.";
+        protected void onPostExecute(Integer res) {
+            String message = "Found " + res + " solutions for " + dim + " queen problem, spend " + time + "ms.";
             Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG).show();
             status_text.setText(message);
             solve_button.setEnabled(true);
