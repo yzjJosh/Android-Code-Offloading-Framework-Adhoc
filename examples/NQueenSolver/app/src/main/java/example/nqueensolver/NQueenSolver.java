@@ -32,21 +32,19 @@ public class NQueenSolver {
 
     private class worker implements Callable<Integer> {
 
-        private boolean[][] board;
-        private boolean[] occupied;
         private int i;
         private int n;
         private int nums = 0;
 
         worker(int i, int n) {
-            this.board = new boolean[n][n];
-            this.occupied = new boolean[n];
             this.i = i;
             this.n = n;
         }
 
         @Remote
         public Integer call() {
+            boolean[][] board = new boolean[n][n];
+            boolean[] occupied = new boolean[n];
             occupied[i] = true;
             board[0][i] = true;
             helper(board, occupied, 1, n);
